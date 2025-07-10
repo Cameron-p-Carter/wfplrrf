@@ -6,22 +6,21 @@ export async function checkAuth(supabase: SupabaseClient): Promise<boolean> {
   console.log("Checking auth...");
 
   const {
-    data: { session },
+    data: { user },
     error,
-  } = await supabase.auth.getSession();
+  } = await supabase.auth.getUser();
 
   if (error) {
     console.error("Error checking auth:", error.message);
     return false;
   }
 
-  console.log("Session state:", {
-    hasSession: !!session,
-    sessionExpiresAt: session?.expires_at,
-    sessionUser: session?.user?.email,
+  console.log("Auth state:", {
+    hasUser: !!user,
+    userEmail: user?.email,
   });
 
-  return !!session;
+  return !!user;
 }
 
 export async function checkRole(

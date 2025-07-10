@@ -167,7 +167,11 @@ export function useDashboardData() {
           timestamp: person.updated_at || person.created_at,
           href: `/dashboard/people/${person.id}`,
         })),
-      ].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      ].sort((a, b) => {
+        const dateA = a.timestamp ? new Date(a.timestamp) : new Date(0);
+        const dateB = b.timestamp ? new Date(b.timestamp) : new Date(0);
+        return dateB.getTime() - dateA.getTime();
+      });
 
       setRecentActivity(activity);
 

@@ -40,8 +40,8 @@ export async function getProjectGaps(projectId: string): Promise<ProjectGap[]> {
         !allocation.requirement_id && // No requirement_id set (legacy allocation)
         allocation.role_type_id === requirement.role_type_id &&
         allocation.start_date && allocation.end_date &&
-        new Date(allocation.start_date) <= new Date(requirement.end_date) &&
-        new Date(allocation.end_date) >= new Date(requirement.start_date)
+        new Date(allocation.start_date) <= new Date(requirement.end_date || '') &&
+        new Date(allocation.end_date) >= new Date(requirement.start_date || '')
       );
       
       // Combine direct and legacy allocations

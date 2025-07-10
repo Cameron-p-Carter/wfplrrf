@@ -155,10 +155,6 @@ export function createCrudHook<T extends { id: string }, TInsert = any, TUpdate 
 }
 
 // Common sorting utilities
-export function sortByName<T extends { name: string }>(items: T[]): T[] {
-  return items.sort((a, b) => a.name.localeCompare(b.name));
-}
-
 export function sortByDate<T extends { created_at: string }>(items: T[]): T[] {
   return items.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 }

@@ -107,13 +107,15 @@ export default function ProjectDetailPage() {
     if (typeof deletingAllocation === 'string') {
       allocationId = deletingAllocation;
     } else if (typeof deletingAllocation === 'object') {
-      allocationId = deletingAllocation.id || deletingAllocation.allocation_id;
+      const id = deletingAllocation.id;
       
-      if (!allocationId) {
+      if (!id) {
         console.error('No allocation ID found in object:', deletingAllocation);
         console.error('Available keys:', Object.keys(deletingAllocation));
         return;
       }
+      
+      allocationId = id;
     } else {
       console.error('Invalid deletingAllocation type:', typeof deletingAllocation, deletingAllocation);
       return;

@@ -48,8 +48,8 @@ export class TimelineDataService {
             name: allocation.person_name!,
             allocationPercentage: allocation.allocation_percentage || 0,
             allocationId: allocation.id!,
-            allocationStartDate: new Date(allocation.start_date!),
-            allocationEndDate: new Date(allocation.end_date!)
+            allocationStartDate: new Date(allocation.start_date || ''),
+            allocationEndDate: new Date(allocation.end_date || '')
           } : undefined,
           requirement: req
         });
@@ -72,15 +72,15 @@ export class TimelineDataService {
         requirementId: 'orphaned',
         positionIndex: index,
         roleTypeName: allocation.role_type_name || 'Unknown Role',
-        startDate: new Date(allocation.start_date!),
-        endDate: new Date(allocation.end_date!),
+        startDate: new Date(allocation.start_date || ''),
+        endDate: new Date(allocation.end_date || ''),
         allocatedPerson: {
           id: allocation.person_id!,
           name: allocation.person_name!,
           allocationPercentage: allocation.allocation_percentage || 0,
           allocationId: allocation.id!,
-          allocationStartDate: new Date(allocation.start_date!),
-          allocationEndDate: new Date(allocation.end_date!)
+          allocationStartDate: new Date(allocation.start_date || ''),
+          allocationEndDate: new Date(allocation.end_date || '')
         },
         requirement: {
           id: 'orphaned',

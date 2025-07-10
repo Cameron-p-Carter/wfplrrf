@@ -36,18 +36,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       setError(null);
       const supabase = createClient();
+      
+      // First check if we have a session before calling getUser()
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        setAuthUser(undefined);
+        return;
+      }
+      
+      // If we have a session, verify it with getUser()
       const {
-        data: { session },
+        data: { user },
         error: initError,
-      } = await supabase.auth.getSession();
+      } = await supabase.auth.getUser();
 
       if (initError) {
-        console.error("Failed to initialize auth:", initError);
+        console.error("Failed to verify user:", initError);
         setAuthUser(undefined);
         return;
       }
 
-      setAuthUser(session?.user || undefined);
+      setAuthUser(user || undefined);
     } catch (error) {
       console.error("Error during auth initialization:", error);
       setAuthUser(undefined);
@@ -105,8 +115,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const supabase = createClient();
 
     const { data: subscription } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setAuthUser(session?.user || undefined);
+      (event, session) => {
+        if (event === 'SIGNED_OUT') {
+          setAuthUser(undefined);
+        } else if (session?.user) {
+          // For signed in state, re-verify the user
+          initAuthUser();
+        }
       }
     );
 
