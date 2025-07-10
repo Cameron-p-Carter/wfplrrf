@@ -25,10 +25,12 @@ export function useProjectAllocations(projectId: string) {
     try {
       setLoading(true);
       setError(null);
+      
       const [allocationsData, gapsData] = await Promise.all([
         getProjectAllocations(projectId),
         getProjectGaps(projectId)
       ]);
+      
       setAllocations(allocationsData);
       setGaps(gapsData);
     } catch (err) {

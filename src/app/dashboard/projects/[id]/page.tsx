@@ -54,9 +54,9 @@ export default function ProjectDetailPage() {
   };
 
   const handleUpdateRequirement = async (data: { role_type_id: string; required_count: number; start_date: string; end_date: string }) => {
-    if (!editingRequirement) return;
+    if (!editingRequirement || !editingRequirement.id) return;
     try {
-      await update(editingRequirement.id!, { ...data, project_id: projectId });
+      await update(editingRequirement.id, { ...data, project_id: projectId });
       setEditingRequirement(null);
     } catch (error) {
       // Error is handled in the hook
@@ -64,10 +64,10 @@ export default function ProjectDetailPage() {
   };
 
   const handleDeleteRequirement = async () => {
-    if (!deletingRequirement) return;
+    if (!deletingRequirement || !deletingRequirement.id) return;
     try {
       setIsDeleting(true);
-      await remove(deletingRequirement.id!);
+      await remove(deletingRequirement.id);
       await refetchAllocations();
       setDeletingRequirement(null);
     } catch (error) {
@@ -88,9 +88,9 @@ export default function ProjectDetailPage() {
   };
 
   const handleUpdateAllocation = async (data: { person_id: string; role_type_id: string; allocation_percentage: number; start_date: string; end_date: string }) => {
-    if (!editingAllocation) return;
+    if (!editingAllocation || !editingAllocation.id) return;
     try {
-      await updateAllocation(editingAllocation.id!, { ...data, project_id: projectId });
+      await updateAllocation(editingAllocation.id, { ...data, project_id: projectId });
       await refetchRequirements();
       setEditingAllocation(null);
     } catch (error) {
@@ -100,12 +100,33 @@ export default function ProjectDetailPage() {
 
   const handleDeleteAllocation = async () => {
     if (!deletingAllocation) return;
+    
+    // Handle case where deletingAllocation might be a string ID instead of an object
+    let allocationId: string;
+    
+    if (typeof deletingAllocation === 'string') {
+      allocationId = deletingAllocation;
+    } else if (typeof deletingAllocation === 'object') {
+      allocationId = deletingAllocation.id || deletingAllocation.allocation_id;
+      
+      if (!allocationId) {
+        console.error('No allocation ID found in object:', deletingAllocation);
+        console.error('Available keys:', Object.keys(deletingAllocation));
+        return;
+      }
+    } else {
+      console.error('Invalid deletingAllocation type:', typeof deletingAllocation, deletingAllocation);
+      return;
+    }
+    
     try {
       setIsDeletingAllocation(true);
-      await removeAllocation(deletingAllocation.id!);
+      await removeAllocation(allocationId);
       await refetchRequirements();
+      await refetchAllocations();
       setDeletingAllocation(null);
     } catch (error) {
+      console.error('Error deleting allocation:', error);
       // Error is handled in the hook
     } finally {
       setIsDeletingAllocation(false);
@@ -131,9 +152,9 @@ export default function ProjectDetailPage() {
   };
 
   const handleUpdatePositionRequirement = async (data: { role_type_id: string; required_count: number; start_date: string; end_date: string }) => {
-    if (!editingPositionRequirement) return;
+    if (!editingPositionRequirement || !editingPositionRequirement.id) return;
     try {
-      await update(editingPositionRequirement.id!, { ...data, project_id: projectId });
+      await update(editingPositionRequirement.id, { ...data, project_id: projectId });
       setEditingPositionRequirement(null);
     } catch (error) {
       // Error is handled in the hook
