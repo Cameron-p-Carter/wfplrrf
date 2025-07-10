@@ -14,6 +14,10 @@ export class TimelineDataService {
   ): RequirementWithAllocations[] {
     const requirementsWithAllocations: RequirementWithAllocations[] = [];
     
+    if (!requirements || !allocations) {
+      return requirementsWithAllocations;
+    }
+    
     requirements.forEach(req => {
       if (!req.start_date || !req.end_date || !req.role_type_name) return;
       
@@ -163,6 +167,10 @@ export class TimelineDataService {
    * Calculate total height needed for the timeline
    */
   static calculateTotalHeight(requirementsWithAllocations: RequirementWithAllocations[]): number {
+    if (!requirementsWithAllocations) {
+      return 0;
+    }
+    
     return requirementsWithAllocations.reduce((acc, req) => {
       const blockHeight = Math.max(60, req.positions.length * 30 + 20);
       return acc + blockHeight + 32; // 32px margin (mb-8)
