@@ -15,7 +15,7 @@ export function TimelineControls({ config, onGranularityChange }: TimelineContro
       <div className="flex items-center space-x-2 text-sm text-muted-foreground">
         <Clock className="h-4 w-4" />
         <span>
-          {config.startDate.toLocaleDateString()} - {config.endDate.toLocaleDateString()}
+          {config.startDate.toLocaleDateString('en-AU')} - {config.endDate.toLocaleDateString('en-AU')}
         </span>
         <span className="text-xs">• Hover over positions to allocate or edit</span>
       </div>

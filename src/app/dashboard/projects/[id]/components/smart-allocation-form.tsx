@@ -446,7 +446,7 @@ export function SmartAllocationForm({ initialData, prefilledData, onSubmit, onCa
           Cancel
         </Button>
         <Button type="submit" disabled={isSubmitting || !formData.person_id}>
-          {isSubmitting ? "Creating..." : "Create Allocation"}
+          {isSubmitting ? "Allocating..." : "Allocate"}
         </Button>
       </div>
 

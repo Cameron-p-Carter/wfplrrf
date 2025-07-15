@@ -56,8 +56,8 @@ export function PositionSlot({
   };
 
   const tooltipContent = isAllocated && position.allocatedPerson
-    ? `${position.allocatedPerson.name}\n${position.roleTypeName}\n${position.allocatedPerson.allocationStartDate.toLocaleDateString()} - ${position.allocatedPerson.allocationEndDate.toLocaleDateString()}\n${position.allocatedPerson.allocationPercentage}% allocation`
-    : `${position.roleTypeName} (Position ${position.positionIndex + 1})\n${position.startDate.toLocaleDateString()} - ${position.endDate.toLocaleDateString()}`;
+    ? `${position.allocatedPerson.name}\n${position.roleTypeName}\n${position.allocatedPerson.allocationStartDate.toLocaleDateString('en-AU')} - ${position.allocatedPerson.allocationEndDate.toLocaleDateString('en-AU')}\n${position.allocatedPerson.allocationPercentage}% allocation`
+    : `${position.roleTypeName} (Position ${position.positionIndex + 1})\n${position.startDate.toLocaleDateString('en-AU')} - ${position.endDate.toLocaleDateString('en-AU')}`;
 
   return (
     <Tooltip>
@@ -76,7 +76,7 @@ export function PositionSlot({
           ) : (
             <div className="flex items-center justify-between h-full px-2">
               <span className="text-xs text-gray-500">
-                Position {position.positionIndex + 1}
+                Allocate
               </span>
               {isHovered && (
                 <div className="flex items-center space-x-1">
