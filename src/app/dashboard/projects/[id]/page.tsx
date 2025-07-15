@@ -57,6 +57,7 @@ export default function ProjectDetailPage() {
     if (!editingRequirement || !editingRequirement.id) return;
     try {
       await update(editingRequirement.id, { ...data, project_id: projectId });
+      await refetchAllocations(); // Refetch allocations since their dates may have been updated
       setEditingRequirement(null);
     } catch (error) {
       // Error is handled in the hook

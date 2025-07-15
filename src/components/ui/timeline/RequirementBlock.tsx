@@ -134,7 +134,11 @@ export function RequirementBlock({
             <span className={`text-xs ${
               isOrphaned ? 'text-red-500' : 'text-gray-500'
             }`}>
-              {new Date(req.start_date!).toLocaleDateString()} - {new Date(req.end_date!).toLocaleDateString()}
+              {req.start_date && req.end_date ? (
+                `${new Date(req.start_date).toLocaleDateString('en-AU')} - ${new Date(req.end_date).toLocaleDateString('en-AU')}`
+              ) : (
+                'Invalid dates'
+              )}
             </span>
           </div>
         </div>

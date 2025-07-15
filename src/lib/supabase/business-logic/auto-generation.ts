@@ -21,6 +21,8 @@ export async function generateLeaveGapRequirements(allocationId: string): Promis
       return [];
     }
 
+    console.log("Allocation dates - start:", allocation.start_date, "end:", allocation.end_date, "allocationId:", allocationId);
+
     // Get approved leave periods that overlap with this allocation
     const { data: approvedLeave, error: leaveError } = await supabase
       .from("leave_periods")
@@ -40,6 +42,9 @@ export async function generateLeaveGapRequirements(allocationId: string): Promis
     }
 
     console.log("Found approved leave periods:", approvedLeave.length);
+    approvedLeave.forEach(leave => {
+      console.log("Leave period - start:", leave.start_date, "end:", leave.end_date);
+    });
 
     // Create leave coverage requirements for each approved leave period
     const newRequirements = [];
