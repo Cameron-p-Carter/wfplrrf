@@ -46,7 +46,17 @@ export default function ProjectDetailPage() {
 
   const handleCreateRequirement = async (data: { role_type_id: string; required_count: number; start_date: string; end_date: string }) => {
     try {
-      await create({ ...data, project_id: projectId });
+      // Create multiple separate requirements instead of one with count > 1
+      const { required_count, ...requirementData } = data;
+      
+      for (let i = 0; i < required_count; i++) {
+        await create({ 
+          ...requirementData, 
+          required_count: 1, // Each requirement needs exactly 1 person
+          project_id: projectId 
+        });
+      }
+      
       setShowCreateDialog(false);
     } catch (error) {
       // Error is handled in the hook
