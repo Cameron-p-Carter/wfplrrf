@@ -3,7 +3,7 @@ import type { Tables } from "@/types/supabase";
 import type { TimelineConfig } from "@/lib/utils/timeline";
 
 interface TimelineTabProps {
-  requirements: Tables<"project_requirements_detailed">[];
+  groupedRequirements: (Tables<"project_requirements_detailed"> & { children?: Tables<"project_requirements_detailed">[] })[];
   allocations: Tables<"project_allocations_detailed">[];
   timelineConfig: TimelineConfig;
   project: Tables<"projects"> | null;
@@ -20,7 +20,7 @@ interface TimelineTabProps {
 }
 
 export function TimelineTab({
-  requirements,
+  groupedRequirements,
   allocations,
   timelineConfig,
   project,
@@ -38,7 +38,7 @@ export function TimelineTab({
   return (
     <ProjectTimeline
       title="Project Resource Timeline"
-      requirements={requirements}
+      groupedRequirements={groupedRequirements}
       allocations={allocations}
       config={timelineConfig}
       onConfigChange={onConfigChange}

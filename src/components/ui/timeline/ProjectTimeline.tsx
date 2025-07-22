@@ -13,7 +13,7 @@ interface ProjectTimelineProps extends TimelineProps, TimelineCallbacks {}
 
 export function ProjectTimeline({ 
   title, 
-  requirements,
+  groupedRequirements,
   allocations,
   config, 
   onConfigChange, 
@@ -64,8 +64,8 @@ export function ProjectTimeline({
 
   // Generate requirements with allocations using the service
   const requirementsWithAllocations = useMemo(
-    () => TimelineDataService.generateRequirementsWithAllocations(requirements, allocations),
-    [requirements, allocations]
+    () => TimelineDataService.generateRequirementsWithAllocations(groupedRequirements, allocations),
+    [groupedRequirements, allocations]
   );
 
   // Bundle callbacks for easier passing

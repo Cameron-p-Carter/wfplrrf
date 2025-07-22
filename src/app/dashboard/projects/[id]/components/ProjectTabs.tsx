@@ -118,7 +118,7 @@ export function ProjectTabs({
 
       <TabsContent value="timeline">
         <TimelineTab
-          requirements={requirements}
+          groupedRequirements={groupedRequirements}
           allocations={allocations}
           timelineConfig={timelineConfig}
           project={project}

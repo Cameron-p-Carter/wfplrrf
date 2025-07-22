@@ -6,43 +6,43 @@ import type { RequirementWithAllocations, RequirementPosition } from "@/componen
  */
 export class TimelineDataService {
   /**
-   * Groups allocations by requirement and creates nested structure with positions
+   * Groups allocations by requirement and creates nested structure with positions from grouped requirements
    */
   static generateRequirementsWithAllocations(
-    requirements: Tables<"project_requirements_detailed">[],
+    groupedRequirements: (Tables<"project_requirements_detailed"> & { children?: Tables<"project_requirements_detailed">[] })[],
     allocations: Tables<"project_allocations_detailed">[]
   ): RequirementWithAllocations[] {
     const requirementsWithAllocations: RequirementWithAllocations[] = [];
     
-    if (!requirements || !allocations) {
+    if (!groupedRequirements || !allocations) {
       return requirementsWithAllocations;
     }
     
-    requirements.forEach(req => {
-      if (!req.start_date || !req.end_date || !req.role_type_name) return;
+    groupedRequirements.forEach(parentReq => {
+      if (!parentReq.start_date || !parentReq.end_date || !parentReq.role_type_name) return;
       
       // Find allocations that are directly linked to this requirement
       const relatedAllocations = allocations.filter(alloc => 
-        alloc.requirement_id === req.id
+        alloc.requirement_id === parentReq.id
       );
 
-      const requiredCount = req.required_count || 1;
+      const requiredCount = parentReq.required_count || 1;
       const positions: RequirementPosition[] = [];
       
       // Create individual positions for each required count
       for (let i = 0; i < requiredCount; i++) {
-        const positionId = `req-${req.id}-${i}`;
+        const positionId = `req-${parentReq.id}-${i}`;
         
         // Try to assign an allocation to this position
         const allocation = relatedAllocations[i]; // Simple assignment for now
         
         positions.push({
           id: positionId,
-          requirementId: req.id!,
+          requirementId: parentReq.id!,
           positionIndex: i,
-          roleTypeName: req.role_type_name,
-          startDate: new Date(req.start_date),
-          endDate: new Date(req.end_date),
+          roleTypeName: parentReq.role_type_name,
+          startDate: new Date(parentReq.start_date),
+          endDate: new Date(parentReq.end_date),
           allocatedPerson: allocation ? {
             id: allocation.person_id!,
             name: allocation.person_name!,
@@ -51,16 +51,66 @@ export class TimelineDataService {
             allocationStartDate: new Date(allocation.start_date || ''),
             allocationEndDate: new Date(allocation.end_date || '')
           } : undefined,
-          requirement: req
+          requirement: parentReq
         });
       }
 
-      requirementsWithAllocations.push({
-        id: req.id!,
-        requirement: req,
+      // Create the parent requirement with allocations
+      const parentWithAllocations: RequirementWithAllocations = {
+        id: parentReq.id!,
+        requirement: parentReq,
         allocations: relatedAllocations,
-        positions
-      });
+        positions,
+        children: []
+      };
+
+      // Add child requirements if they exist
+      if (parentReq.children && parentReq.children.length > 0) {
+        parentReq.children.forEach(childReq => {
+          if (!childReq.start_date || !childReq.end_date || !childReq.role_type_name) return;
+          
+          // Find allocations for this child requirement
+          const childAllocations = allocations.filter(alloc => 
+            alloc.requirement_id === childReq.id
+          );
+
+          const childRequiredCount = childReq.required_count || 1;
+          const childPositions: RequirementPosition[] = [];
+          
+          // Create positions for child requirement
+          for (let i = 0; i < childRequiredCount; i++) {
+            const positionId = `req-${childReq.id}-${i}`;
+            const allocation = childAllocations[i];
+            
+            childPositions.push({
+              id: positionId,
+              requirementId: childReq.id!,
+              positionIndex: i,
+              roleTypeName: childReq.role_type_name,
+              startDate: new Date(childReq.start_date),
+              endDate: new Date(childReq.end_date),
+              allocatedPerson: allocation ? {
+                id: allocation.person_id!,
+                name: allocation.person_name!,
+                allocationPercentage: allocation.allocation_percentage || 0,
+                allocationId: allocation.id!,
+                allocationStartDate: new Date(allocation.start_date || ''),
+                allocationEndDate: new Date(allocation.end_date || '')
+              } : undefined,
+              requirement: childReq
+            });
+          }
+
+          parentWithAllocations.children!.push({
+            id: childReq.id!,
+            requirement: childReq,
+            allocations: childAllocations,
+            positions: childPositions
+          });
+        });
+      }
+
+      requirementsWithAllocations.push(parentWithAllocations);
     });
     
     // Add orphaned allocations (allocations with no requirement)
@@ -172,8 +222,20 @@ export class TimelineDataService {
     }
     
     return requirementsWithAllocations.reduce((acc, req) => {
-      const blockHeight = Math.max(60, req.positions.length * 30 + 20);
-      return acc + blockHeight + 32; // 32px margin (mb-8)
+      // Height for parent requirement
+      const parentBlockHeight = Math.max(80, req.positions.length * 40 + 30);
+      let totalHeight = parentBlockHeight;
+      
+      // Add height for child requirements with proper spacing
+      if (req.children && req.children.length > 0) {
+        const childrenHeight = req.children.reduce((childAcc, child) => {
+          const childBlockHeight = Math.max(60, child.positions.length * 30 + 20);
+          return childAcc + childBlockHeight + 24; // 24px margin between children
+        }, 0);
+        totalHeight += childrenHeight + 32; // Extra 32px spacing after parent
+      }
+      
+      return acc + totalHeight + 48; // 48px margin between requirement groups (increased from 32px)
     }, 0);
   }
 }

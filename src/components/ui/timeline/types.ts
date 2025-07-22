@@ -6,6 +6,7 @@ export interface RequirementWithAllocations {
   requirement: Tables<"project_requirements_detailed">;
   allocations: Tables<"project_allocations_detailed">[];
   positions: RequirementPosition[];
+  children?: RequirementWithAllocations[];
 }
 
 export interface RequirementPosition {
@@ -41,7 +42,7 @@ export interface TimelineCallbacks {
 
 export interface TimelineProps {
   title: string;
-  requirements: Tables<"project_requirements_detailed">[];
+  groupedRequirements: (Tables<"project_requirements_detailed"> & { children?: Tables<"project_requirements_detailed">[] })[];
   allocations: Tables<"project_allocations_detailed">[];
   config: TimelineConfig;
   className?: string;
