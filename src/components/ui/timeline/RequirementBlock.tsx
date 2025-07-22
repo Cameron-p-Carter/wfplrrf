@@ -311,7 +311,7 @@ export function RequirementBlock({
                       lastChildRelativeTop += cHeight + 40; // Height + increased spacing
                     }
                     // Distance from adjusted connectorStart to the last child's horizontal line
-                    return 32 + lastChildRelativeTop + 8; // Account for the -8px adjustment on parent line start
+                    return 32 + lastChildRelativeTop + 12; // Account for the -8px adjustment on parent line start
                   })()}px`,
                 }}
               />
