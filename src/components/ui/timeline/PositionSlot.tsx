@@ -51,7 +51,11 @@ export function PositionSlot({
     if (isOrphaned) {
       callbacks.onDeleteOrphanedAllocation?.(position.allocatedPerson!.allocationId);
     } else {
-      callbacks.onDeleteAllocation?.(position.allocatedPerson!.allocationId);
+      // Find the full allocation object by ID
+      const fullAllocation = allocations.find(alloc => alloc.id === position.allocatedPerson!.allocationId);
+      if (fullAllocation) {
+        callbacks.onDeleteAllocation?.(fullAllocation);
+      }
     }
   };
 
