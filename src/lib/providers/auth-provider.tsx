@@ -147,6 +147,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { error: loginError.message };
     }
 
+    // Check email whitelist 
+    const allowedEmails = process.env.NEXT_PUBLIC_ALLOWED_EMAILS?.split(',').map(email => email.trim()) || [];
+    if (allowedEmails.length > 0 && !allowedEmails.includes(data.user.email || '')) {
+      setError("Access denied. Your email is not authorized to use this application.");
+      setLoading(false);
+      return { error: "Email not authorized" };
+    }
+
     setAuthUser(data.user);
     await fetchUser();
     setLoading(false);
