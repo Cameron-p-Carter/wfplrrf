@@ -145,7 +145,8 @@ export class TimelineDataService {
           source_allocation_id: null,
           created_at: null,
           updated_at: null,
-          project_name: null
+          project_name: null,
+          ignored: false
         }
       }));
 
@@ -164,7 +165,8 @@ export class TimelineDataService {
           source_allocation_id: null,
           created_at: null,
           updated_at: null,
-          project_name: null
+          project_name: null,
+          ignored: false
         },
         allocations: orphanedAllocations,
         positions: orphanedPositions
