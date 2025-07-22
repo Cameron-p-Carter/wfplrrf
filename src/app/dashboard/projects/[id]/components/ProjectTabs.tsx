@@ -2,9 +2,7 @@ import React from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { OverviewTab } from "./tabs/OverviewTab";
-import { RequirementsTab } from "./tabs/RequirementsTab";
-import { AllocationsTab } from "./tabs/AllocationsTab";
-import { GapsTab } from "./tabs/GapsTab";
+import { ResourcesTab } from "./tabs/ResourcesTab";
 import { TimelineTab } from "./tabs/TimelineTab";
 import type { Tables } from "@/types/supabase";
 import type { TimelineConfig } from "@/lib/utils/timeline";
@@ -67,24 +65,13 @@ export function ProjectTabs({
     <Tabs defaultValue="overview" className="space-y-4">
       <TabsList>
         <TabsTrigger value="overview">Overview</TabsTrigger>
-        <TabsTrigger value="requirements">
-          Requirements
+        <TabsTrigger value="resources">
+          Resources
           {requirements && requirements.length > 0 && (
             <Badge variant="secondary" className="ml-2">
               {requirements.length}
             </Badge>
           )}
-        </TabsTrigger>
-        <TabsTrigger value="allocations">
-          Allocations
-          {allocations && allocations.length > 0 && (
-            <Badge variant="secondary" className="ml-2">
-              {allocations.length}
-            </Badge>
-          )}
-        </TabsTrigger>
-        <TabsTrigger value="gaps">
-          Gaps
           {gaps && gaps.length > 0 && (
             <Badge variant="destructive" className="ml-2">
               {gaps.length}
@@ -106,30 +93,20 @@ export function ProjectTabs({
         />
       </TabsContent>
 
-      <TabsContent value="requirements">
-        <RequirementsTab
+      <TabsContent value="resources">
+        <ResourcesTab
           groupedRequirements={groupedRequirements}
-          loading={requirementsLoading}
+          allocations={allocations}
+          gaps={gaps}
+          requirementsLoading={requirementsLoading}
+          allocationsLoading={allocationsLoading}
           onCreateRequirement={onCreateRequirement}
           onEditRequirement={onEditRequirement}
           onDeleteRequirement={onDeleteRequirement}
-        />
-      </TabsContent>
-
-      <TabsContent value="allocations">
-        <AllocationsTab
-          allocations={allocations}
-          loading={allocationsLoading}
           onCreateAllocation={onCreateAllocation}
           onEditAllocation={onEditAllocation}
           onDeleteAllocation={onDeleteAllocation}
-        />
-      </TabsContent>
-
-      <TabsContent value="gaps">
-        <GapsTab
-          gaps={gaps}
-          loading={allocationsLoading}
+          onAllocateToRequirement={onAllocatePosition}
         />
       </TabsContent>
 
