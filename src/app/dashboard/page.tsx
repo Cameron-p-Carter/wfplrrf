@@ -26,8 +26,10 @@ import { useProjects } from "@/lib/hooks/use-projects";
 import { useResourceAnalytics } from "@/lib/hooks/use-resource-analytics";
 import { useCurrentPeriodGaps } from "@/lib/hooks/use-current-period-gaps";
 import { useUtilizationTimeline } from "@/lib/hooks/use-utilization-timeline";
+import { useProjectGapsTimeline } from "@/lib/hooks/use-project-gaps-timeline";
 import { TimePeriodSelector } from "@/components/ui/time-period-selector";
 import { UtilizationChart } from "@/components/ui/utilization-chart";
+import { ProjectGapsChart } from "@/components/ui/project-gaps-chart";
 import { useTimePeriod } from "@/lib/providers/time-period-provider";
 import { formatDate } from "@/lib/utils/date";
 
@@ -38,6 +40,7 @@ export default function DashboardPage() {
   const { overAllocatedPeople, peopleUtilization, utilizationStats, loading: analyticsLoading } = useResourceAnalytics();
   const { gapsByRole, projectsWithGaps, totalGaps, criticalGaps, loading: gapsLoading } = useCurrentPeriodGaps();
   const { timelineData, currentAverage, trend, loading: timelineLoading } = useUtilizationTimeline();
+  const { timelineData: gapsTimelineData, projects: gapsProjects, totalGaps: timelineTotalGaps, worstProject, loading: gapsTimelineLoading } = useProjectGapsTimeline();
   const { period, range } = useTimePeriod();
 
   const activeProjects = projects.filter(project => {
@@ -280,7 +283,84 @@ export default function DashboardPage() {
         </Card>
       )}
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      {/* Charts Row */}
+      <div className="grid gap-4 md:grid-cols-2">
+        {/* Team Utilization Timeline */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Team Utilization</CardTitle>
+            <CardDescription>Average utilization over time</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {timelineLoading || peopleUtilization.length === 0 ? (
+              <UtilizationChart data={[]} loading={timelineLoading} height={180} />
+            ) : (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">
+                    {range.description}
+                  </span>
+                  <div className="flex items-center gap-4">
+                    <span className="text-muted-foreground">
+                      Average: <span className="font-medium text-foreground">{currentAverage}%</span>
+                    </span>
+                    <span className={`text-xs px-2 py-1 rounded-full ${
+                      trend === 'increasing' ? 'bg-green-100 text-green-700' :
+                      trend === 'decreasing' ? 'bg-red-100 text-red-700' :
+                      'bg-gray-100 text-gray-700'
+                    }`}>
+                      {trend === 'increasing' ? '↗ Increasing' :
+                       trend === 'decreasing' ? '↘ Decreasing' :
+                       '→ Stable'}
+                    </span>
+                  </div>
+                </div>
+                <UtilizationChart data={timelineData} loading={timelineLoading} height={180} />
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Project Gaps Timeline */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Project Gaps Timeline</CardTitle>
+            <CardDescription>Resource gaps by project over time</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {gapsTimelineLoading ? (
+              <ProjectGapsChart data={[]} projects={[]} loading={gapsTimelineLoading} height={180} />
+            ) : (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">
+                    {range.description}
+                  </span>
+                  <div className="flex items-center gap-4">
+                    <span className="text-muted-foreground">
+                      Total: <span className="font-medium text-foreground">{timelineTotalGaps} gaps</span>
+                    </span>
+                    {worstProject && worstProject.totalGaps > 0 && (
+                      <span className="text-xs px-2 py-1 rounded-full bg-orange-100 text-orange-700">
+                        Worst: {worstProject.name} ({worstProject.totalGaps})
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <ProjectGapsChart 
+                  data={gapsTimelineData} 
+                  projects={gapsProjects} 
+                  loading={gapsTimelineLoading} 
+                  height={180} 
+                />
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Project Status and Quick Actions Row */}
+      <div className="grid gap-4 md:grid-cols-2">
         {/* Project Status Summary */}
         <Card>
           <CardHeader>
@@ -347,42 +427,6 @@ export default function DashboardPage() {
                     );
                   })}
                 </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Team Utilization Timeline */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Team Utilization</CardTitle>
-            <CardDescription>Average utilization over time</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {timelineLoading || peopleUtilization.length === 0 ? (
-              <UtilizationChart data={[]} loading={timelineLoading} height={140} />
-            ) : (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">
-                    {range.description}
-                  </span>
-                  <div className="flex items-center gap-4">
-                    <span className="text-muted-foreground">
-                      Average: <span className="font-medium text-foreground">{currentAverage}%</span>
-                    </span>
-                    <span className={`text-xs px-2 py-1 rounded-full ${
-                      trend === 'increasing' ? 'bg-green-100 text-green-700' :
-                      trend === 'decreasing' ? 'bg-red-100 text-red-700' :
-                      'bg-gray-100 text-gray-700'
-                    }`}>
-                      {trend === 'increasing' ? '↗ Increasing' :
-                       trend === 'decreasing' ? '↘ Decreasing' :
-                       '→ Stable'}
-                    </span>
-                  </div>
-                </div>
-                <UtilizationChart data={timelineData} loading={timelineLoading} height={140} />
               </div>
             )}
           </CardContent>
