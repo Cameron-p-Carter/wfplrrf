@@ -1,4 +1,5 @@
 import React from "react";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface UtilizationDataPoint {
@@ -30,133 +31,103 @@ export function UtilizationChart({ data, loading = false, height = 120 }: Utiliz
     );
   }
 
-  const maxUtil = Math.max(...data.map(d => d.averageUtilization), 100);
-  const minUtil = Math.min(...data.map(d => d.averageUtilization), 0);
-  const range = maxUtil - minUtil;
-  const padding = range * 0.1; // 10% padding
-  const chartMax = Math.min(maxUtil + padding, 100);
-  const chartMin = Math.max(minUtil - padding, 0);
-  const chartRange = chartMax - chartMin;
+  // Get color based on utilization level
+  const getUtilizationColor = (utilization: number) => {
+    if (utilization >= 80) return "#ef4444"; // red
+    if (utilization >= 60) return "#f97316"; // orange  
+    if (utilization >= 40) return "#eab308"; // yellow
+    return "#22c55e"; // green
+  };
 
-  const width = 300;
-  const chartHeight = height - 40; // Leave space for labels
-  const chartPadding = 40;
+  // Get average utilization for overall color theme
+  const averageUtil = data.reduce((sum, point) => sum + point.averageUtilization, 0) / data.length;
+  const chartColor = getUtilizationColor(averageUtil);
 
-  // Calculate points for the line
-  const points = data.map((point, index) => {
-    const x = chartPadding + (index * (width - 2 * chartPadding)) / (data.length - 1);
-    const y = chartHeight - ((point.averageUtilization - chartMin) / chartRange) * chartHeight + 20;
-    return { x, y, ...point };
-  });
-
-  // Generate path string for the line
-  const pathD = points.reduce((path, point, index) => {
-    const command = index === 0 ? 'M' : 'L';
-    return `${path} ${command} ${point.x} ${point.y}`;
-  }, '').trim();
-
-  // Generate gradient fill path
-  const fillPath = `${pathD} L ${points[points.length - 1].x} ${chartHeight + 20} L ${points[0].x} ${chartHeight + 20} Z`;
+  // Custom tooltip component
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      const data = payload[0].payload;
+      const utilColor = getUtilizationColor(data.averageUtilization);
+      return (
+        <div className="bg-background border border-border rounded-lg shadow-lg p-3">
+          <p className="font-medium">{label}</p>
+          <p className="text-sm text-muted-foreground">
+            <span className="font-medium" style={{ color: utilColor }}>{payload[0].value}%</span> average utilization
+          </p>
+          <p className="text-xs text-muted-foreground">
+            {data.totalPeople} people
+          </p>
+        </div>
+      );
+    }
+    return null;
+  };
 
   return (
-    <div className="w-full">
-      <svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`} className="overflow-visible">
-        {/* Grid lines */}
-        <defs>
-          <linearGradient id="utilizationGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity="0.2" />
-            <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity="0.0" />
-          </linearGradient>
-        </defs>
-        
-        {/* Grid lines */}
-        {[0, 25, 50, 75, 100].map((value) => {
-          if (value < chartMin || value > chartMax) return null;
-          const y = chartHeight - ((value - chartMin) / chartRange) * chartHeight + 20;
-          return (
-            <g key={value}>
-              <line 
-                x1={chartPadding} 
-                y1={y} 
-                x2={width - chartPadding} 
-                y2={y} 
-                stroke="hsl(var(--border))" 
-                strokeWidth="1" 
-                opacity="0.3"
-              />
-              <text 
-                x={chartPadding - 8} 
-                y={y + 3} 
-                fontSize="10" 
-                fill="hsl(var(--muted-foreground))" 
-                textAnchor="end"
-              >
-                {value}%
-              </text>
-            </g>
-          );
-        })}
-
-        {/* Fill area under the line */}
-        <path 
-          d={fillPath} 
-          fill="url(#utilizationGradient)" 
-        />
-
-        {/* Main line */}
-        <path 
-          d={pathD} 
-          fill="none" 
-          stroke="hsl(var(--primary))" 
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-
-        {/* Data points */}
-        {points.map((point, index) => (
-          <g key={index}>
-            <circle 
-              cx={point.x} 
-              cy={point.y} 
-              r="3" 
-              fill="hsl(var(--primary))" 
-              stroke="white" 
-              strokeWidth="2"
-            />
-            {/* Tooltip on hover */}
-            <circle 
-              cx={point.x} 
-              cy={point.y} 
-              r="8" 
-              fill="transparent"
-              className="cursor-pointer hover:fill-black hover:fill-opacity-5"
-            >
-              <title>{`${point.date}: ${point.averageUtilization}% (${point.totalPeople} people)`}</title>
-            </circle>
-          </g>
-        ))}
-
-        {/* X-axis labels */}
-        {points.map((point, index) => {
-          // Show every label for small datasets, or every other for larger ones
-          const showLabel = data.length <= 6 || index % 2 === 0;
-          if (!showLabel) return null;
-          
-          return (
-            <text 
-              key={`label-${index}`}
-              x={point.x} 
-              y={height - 5} 
-              fontSize="10" 
-              fill="hsl(var(--muted-foreground))" 
-              textAnchor="middle"
-            >
-              {point.date}
-            </text>
-          );
-        })}
-      </svg>
+    <div className="w-full" style={{ height }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <AreaChart
+          data={data}
+          margin={{
+            top: 5,
+            right: 10,
+            left: 10,
+            bottom: 5,
+          }}
+        >
+          <defs>
+            <linearGradient id="utilizationGradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor={chartColor} stopOpacity={0.3}/>
+              <stop offset="95%" stopColor={chartColor} stopOpacity={0.05}/>
+            </linearGradient>
+          </defs>
+          <CartesianGrid 
+            strokeDasharray="3 3" 
+            stroke="hsl(var(--border))" 
+            opacity={0.3}
+          />
+          <XAxis 
+            dataKey="date" 
+            axisLine={false}
+            tickLine={false}
+            tick={{ 
+              fontSize: 12, 
+              fill: "hsl(var(--muted-foreground))" 
+            }}
+          />
+          <YAxis 
+            domain={[0, 100]}
+            axisLine={false}
+            tickLine={false}
+            tick={{ 
+              fontSize: 12, 
+              fill: "hsl(var(--muted-foreground))" 
+            }}
+            tickFormatter={(value) => `${value}%`}
+            width={35}
+          />
+          <Tooltip content={<CustomTooltip />} />
+          <Area 
+            type="monotone" 
+            dataKey="averageUtilization" 
+            stroke={chartColor}
+            strokeWidth={3}
+            fill="url(#utilizationGradient)"
+            dot={{ 
+              fill: chartColor, 
+              strokeWidth: 2, 
+              stroke: "white",
+              r: 4
+            }}
+            activeDot={{ 
+              r: 6, 
+              fill: chartColor,
+              stroke: "white",
+              strokeWidth: 2
+            }}
+          />
+        </AreaChart>
+      </ResponsiveContainer>
     </div>
   );
 }
