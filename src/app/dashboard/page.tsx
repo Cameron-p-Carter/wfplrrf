@@ -239,42 +239,30 @@ export default function DashboardPage() {
                 ))}
               </div>
             ) : (
-              <div className="space-y-3">
-                <div className="space-y-2">
-                  {gapsByRole.slice(0, 4).map((roleGap) => (
-                    <div key={roleGap.role_type_id} className="flex items-center justify-between p-2 bg-orange-100/50 rounded">
-                      <div>
-                        <span className="font-medium">{roleGap.role_type_name}</span>
-                        <div className="text-xs text-muted-foreground">
-                          {roleGap.projects_affected} project{roleGap.projects_affected !== 1 ? 's' : ''} affected
+              <div className="space-y-2">
+                {projectsWithGaps
+                  .sort((a, b) => b.gap_count - a.gap_count) // Sort by gap count descending
+                  .slice(0, 5) // Show top 5 projects
+                  .map((project) => (
+                    <Link key={project.id} href={`/dashboard/projects/${project.id}`}>
+                      <div className="flex items-center justify-between p-2 bg-orange-100/50 rounded hover:bg-orange-100 cursor-pointer transition-colors">
+                        <div>
+                          <span className="font-medium">{project.name}</span>
+                          <div className="text-xs text-muted-foreground">
+                            Click to view project dashboard
+                          </div>
                         </div>
-                      </div>
-                      <Badge variant="outline" className="text-orange-700 border-orange-300">
-                        {roleGap.total_gaps} gap{roleGap.total_gaps !== 1 ? 's' : ''}
-                      </Badge>
-                    </div>
-                  ))}
-                </div>
-                
-                {projectsWithGaps.length > 0 && (
-                  <div className="pt-2 border-t border-orange-200">
-                    <div className="text-sm font-medium text-orange-700 mb-2">
-                      Projects needing attention:
-                    </div>
-                    <div className="flex flex-wrap gap-1">
-                      {projectsWithGaps.slice(0, 3).map((project) => (
-                        <Link key={project.id} href={`/dashboard/projects/${project.id}?tab=resources`}>
-                          <Badge variant="outline" className="text-xs hover:bg-orange-100 cursor-pointer">
-                            {project.name} ({project.gap_count})
-                          </Badge>
-                        </Link>
-                      ))}
-                      {projectsWithGaps.length > 3 && (
-                        <Badge variant="outline" className="text-xs text-muted-foreground">
-                          +{projectsWithGaps.length - 3} more
+                        <Badge variant="outline" className="text-orange-700 border-orange-300">
+                          {project.gap_count} gap{project.gap_count !== 1 ? 's' : ''}
                         </Badge>
-                      )}
-                    </div>
+                      </div>
+                    </Link>
+                  ))}
+                {projectsWithGaps.length > 5 && (
+                  <div className="text-center pt-2">
+                    <span className="text-xs text-muted-foreground">
+                      +{projectsWithGaps.length - 5} more projects with gaps
+                    </span>
                   </div>
                 )}
               </div>
