@@ -12,7 +12,7 @@ interface TimelineTabProps {
   onEditPosition: (position: any) => void;
   onDeleteOrphanedAllocation: (allocationId: string) => void;
   onEditAllocation: (allocation: Tables<"project_allocations_detailed">) => void;
-  onDeleteAllocation: (allocationId: string) => void;
+  onDeleteAllocation: (allocation: Tables<"project_allocations_detailed">) => void;
   onEditRequirement: (requirement: Tables<"project_requirements_detailed">) => void;
   onDeleteRequirement: (requirement: Tables<"project_requirements_detailed">) => void;
   onIgnoreRequirement: (requirement: Tables<"project_requirements_detailed">) => void;

@@ -98,12 +98,7 @@ export function ResourcesTab({
   });
 
   const handleAddAllocation = (requirement: Tables<"project_requirements_detailed">) => {
-    // Create a position object that matches the expected structure
-    const position = {
-      requirement: requirement,
-      roleTypeName: requirement.role_type_name,
-    };
-    onAllocateToRequirement(position);
+    onAllocateToRequirement(requirement);
   };
 
   return (
