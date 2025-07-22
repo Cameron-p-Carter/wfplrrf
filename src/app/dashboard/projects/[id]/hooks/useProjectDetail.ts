@@ -34,6 +34,8 @@ interface UseProjectDetailReturn {
   create: (data: TablesInsert<"project_resource_requirements">) => Promise<void>;
   update: (id: string, data: TablesUpdate<"project_resource_requirements">) => Promise<void>;
   remove: (id: string) => Promise<void>;
+  ignore: (id: string) => Promise<void>;
+  unIgnore: (id: string) => Promise<void>;
   createAllocation: (data: TablesInsert<"project_allocations">) => Promise<void>;
   updateAllocation: (id: string, data: TablesUpdate<"project_allocations">) => Promise<void>;
   removeAllocation: (id: string) => Promise<void>;
@@ -52,7 +54,9 @@ export function useProjectDetail(projectId: string): UseProjectDetailReturn {
     loading: requirementsLoading, 
     create, 
     update, 
-    remove, 
+    remove,
+    ignore,
+    unIgnore,
     refetch: refetchRequirements 
   } = useProjectRequirements(projectId);
   
@@ -118,6 +122,8 @@ export function useProjectDetail(projectId: string): UseProjectDetailReturn {
     create,
     update,
     remove,
+    ignore,
+    unIgnore,
     createAllocation,
     updateAllocation,
     removeAllocation,

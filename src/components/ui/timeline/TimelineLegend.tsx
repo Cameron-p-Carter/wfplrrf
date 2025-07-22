@@ -18,6 +18,10 @@ export function TimelineLegend() {
         <span className="text-xs">Auto-generated (Partial Gap)</span>
       </div>
       <div className="flex items-center space-x-2">
+        <div className="w-4 h-4 bg-gray-50 border-2 border-gray-300 rounded opacity-50 auto-gen-leave-coverage"></div>
+        <span className="text-xs">Auto-generated (Ignored)</span>
+      </div>
+      <div className="flex items-center space-x-2">
         <div className="w-4 h-4 bg-white border border-gray-400 border-dashed rounded"></div>
         <span className="text-xs">Open Position</span>
       </div>

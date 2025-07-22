@@ -15,6 +15,8 @@ interface TimelineTabProps {
   onDeleteAllocation: (allocationId: string) => void;
   onEditRequirement: (requirement: Tables<"project_requirements_detailed">) => void;
   onDeleteRequirement: (requirement: Tables<"project_requirements_detailed">) => void;
+  onIgnoreRequirement: (requirement: Tables<"project_requirements_detailed">) => void;
+  onUnIgnoreRequirement: (requirement: Tables<"project_requirements_detailed">) => void;
 }
 
 export function TimelineTab({
@@ -30,6 +32,8 @@ export function TimelineTab({
   onDeleteAllocation,
   onEditRequirement,
   onDeleteRequirement,
+  onIgnoreRequirement,
+  onUnIgnoreRequirement,
 }: TimelineTabProps) {
   return (
     <ProjectTimeline
@@ -45,6 +49,8 @@ export function TimelineTab({
       onDeleteAllocation={onDeleteAllocation}
       onEditRequirement={onEditRequirement}
       onDeleteRequirement={onDeleteRequirement}
+      onIgnoreRequirement={onIgnoreRequirement}
+      onUnIgnoreRequirement={onUnIgnoreRequirement}
       projectStartDate={project ? new Date(project.start_date) : undefined}
       projectEndDate={project ? new Date(project.end_date) : undefined}
     />

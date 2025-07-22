@@ -7,7 +7,9 @@ import {
   getGroupedProjectRequirements,
   createProjectRequirement, 
   updateProjectRequirement, 
-  deleteProjectRequirement 
+  deleteProjectRequirement,
+  ignoreProjectRequirement,
+  unIgnoreProjectRequirement
 } from "@/lib/supabase";
 import type { Tables, TablesInsert, TablesUpdate } from "@/types/supabase";
 
@@ -82,6 +84,30 @@ export function useProjectRequirements(projectId: string) {
     }
   };
 
+  const ignore = async (id: string) => {
+    try {
+      await ignoreProjectRequirement(id);
+      await fetchRequirements(); // Refetch to get the updated view
+      toast.success("Resource requirement ignored successfully");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to ignore resource requirement";
+      toast.error(message);
+      throw err;
+    }
+  };
+
+  const unIgnore = async (id: string) => {
+    try {
+      await unIgnoreProjectRequirement(id);
+      await fetchRequirements(); // Refetch to get the updated view
+      toast.success("Resource requirement restored successfully");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to restore resource requirement";
+      toast.error(message);
+      throw err;
+    }
+  };
+
   return {
     requirements,
     groupedRequirements,
@@ -90,6 +116,8 @@ export function useProjectRequirements(projectId: string) {
     create,
     update,
     remove,
+    ignore,
+    unIgnore,
     refetch: fetchRequirements,
   };
 }

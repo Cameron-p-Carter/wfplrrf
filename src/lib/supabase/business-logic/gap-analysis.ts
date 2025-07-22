@@ -29,6 +29,9 @@ export async function getProjectGaps(projectId: string): Promise<ProjectGap[]> {
     for (const requirement of requirements) {
       if (!requirement.start_date || !requirement.end_date || !requirement.role_type_id) continue;
       
+      // Skip ignored requirements - they don't count towards gaps
+      if (requirement.ignored === true) continue;
+      
       // Find allocations that are directly linked to this requirement
       const directAllocations = allocations.filter(allocation => 
         allocation.requirement_id === requirement.id

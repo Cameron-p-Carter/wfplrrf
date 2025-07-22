@@ -24,6 +24,8 @@ export function ProjectTimeline({
   onDeleteAllocation,
   onEditRequirement,
   onDeleteRequirement,
+  onIgnoreRequirement,
+  onUnIgnoreRequirement,
   className,
   projectStartDate,
   projectEndDate
@@ -76,6 +78,8 @@ export function ProjectTimeline({
     onDeleteAllocation,
     onEditRequirement,
     onDeleteRequirement,
+    onIgnoreRequirement,
+    onUnIgnoreRequirement,
   };
 
   return (

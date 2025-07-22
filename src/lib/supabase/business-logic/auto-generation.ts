@@ -58,12 +58,53 @@ export async function generateLeaveGapRequirements(allocationId: string): Promis
         if (overlapStart <= overlapEnd) {
           // Calculate the coverage needed (based on allocation percentage)
           const coverageNeeded = allocation.allocation_percentage / 100;
+          const startDateStr = overlapStart.toISOString().split('T')[0];
+          const endDateStr = overlapEnd.toISOString().split('T')[0];
+          
+          // Check if a similar leave coverage requirement was previously ignored
+          const { data: similarIgnored } = await supabase
+            .from("project_resource_requirements")
+            .select("*")
+            .eq("project_id", allocation.project_id)
+            .eq("role_type_id", allocation.role_type_id)
+            .eq("start_date", startDateStr)
+            .eq("end_date", endDateStr)
+            .eq("auto_generated_type", "leave_coverage")
+            .eq("ignored", true);
+
+          if (similarIgnored && similarIgnored.length > 0) {
+            console.log("Similar leave coverage was previously ignored, skipping auto-generation");
+            continue; // Skip this leave period
+          }
+
+          // Check if leave coverage requirement already exists for this exact scenario
+          const { data: existingCoverage } = await supabase
+            .from("project_resource_requirements")
+            .select("*")
+            .eq("project_id", allocation.project_id)
+            .eq("role_type_id", allocation.role_type_id)
+            .eq("start_date", startDateStr)
+            .eq("end_date", endDateStr)
+            .eq("auto_generated_type", "leave_coverage")
+            .eq("source_allocation_id", allocation.id);
+
+          if (existingCoverage && existingCoverage.length > 0) {
+            // If existing coverage is ignored, skip
+            const hasIgnored = existingCoverage.some(req => req.ignored === true);
+            if (hasIgnored) {
+              console.log("Leave coverage was previously ignored, skipping auto-generation");
+              continue;
+            }
+            console.log("Leave coverage already exists");
+            newRequirements.push(...existingCoverage);
+            continue;
+          }
           
           const requirementData: TablesInsert<"project_resource_requirements"> = {
             project_id: allocation.project_id,
             role_type_id: allocation.role_type_id,
-            start_date: overlapStart.toISOString().split('T')[0],
-            end_date: overlapEnd.toISOString().split('T')[0],
+            start_date: startDateStr,
+            end_date: endDateStr,
             required_count: coverageNeeded,
             auto_generated_type: 'leave_coverage' as const,
             source_allocation_id: allocation.id,
@@ -152,8 +193,31 @@ export async function generatePartialAllocationGaps(allocationId: string): Promi
       .eq("source_allocation_id", allocation.id);
 
     if (existingGap && existingGap.length > 0) {
+      // If the existing gap is ignored, don't recreate it
+      const hasIgnored = existingGap.some(req => req.ignored === true);
+      if (hasIgnored) {
+        console.log("Partial gap was previously ignored, skipping auto-generation");
+        return [];
+      }
       console.log("Partial gap already exists");
       return existingGap; // Gap already exists
+    }
+
+    // Also check if a similar requirement was previously ignored
+    // (same project, role, dates, type) even if not linked to this allocation
+    const { data: similarIgnored } = await supabase
+      .from("project_resource_requirements")
+      .select("*")
+      .eq("project_id", allocation.project_id)
+      .eq("role_type_id", allocation.role_type_id)
+      .eq("start_date", allocation.start_date)
+      .eq("end_date", allocation.end_date)
+      .eq("auto_generated_type", "partial_gap")
+      .eq("ignored", true);
+
+    if (similarIgnored && similarIgnored.length > 0) {
+      console.log("Similar partial gap was previously ignored, skipping auto-generation");
+      return [];
     }
 
     // Create the partial gap requirement

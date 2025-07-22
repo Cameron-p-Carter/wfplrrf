@@ -35,6 +35,8 @@ export interface TimelineCallbacks {
   onDeleteAllocation?: (allocationId: string) => void;
   onEditRequirement?: (requirement: Tables<"project_requirements_detailed">) => void;
   onDeleteRequirement?: (requirement: Tables<"project_requirements_detailed">) => void;
+  onIgnoreRequirement?: (requirement: Tables<"project_requirements_detailed">) => void;
+  onUnIgnoreRequirement?: (requirement: Tables<"project_requirements_detailed">) => void;
 }
 
 export interface TimelineProps {

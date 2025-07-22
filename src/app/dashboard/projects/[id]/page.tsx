@@ -17,7 +17,7 @@ export default function ProjectDetailPage() {
   const router = useRouter();
   const projectId = params.id as string;
   
-  const { project, loading: projectLoading, requirements, groupedRequirements, allocations, gaps, requirementsLoading, allocationsLoading, refetchRequirements, refetchAllocations, create, update, remove, createAllocation, updateAllocation, removeAllocation } = useProjectDetail(projectId);
+  const { project, loading: projectLoading, requirements, groupedRequirements, allocations, gaps, requirementsLoading, allocationsLoading, refetchRequirements, refetchAllocations, create, update, remove, ignore, unIgnore, createAllocation, updateAllocation, removeAllocation } = useProjectDetail(projectId);
   
   const {
     showCreateDialog,
@@ -85,6 +85,24 @@ export default function ProjectDetailPage() {
       // Error is handled in the hook
     } finally {
       setIsDeleting(false);
+    }
+  };
+
+  const handleIgnoreRequirement = async (requirement: Tables<"project_requirements_detailed">) => {
+    if (!requirement.id) return;
+    try {
+      await ignore(requirement.id);
+    } catch (error) {
+      // Error is handled in the hook
+    }
+  };
+
+  const handleUnIgnoreRequirement = async (requirement: Tables<"project_requirements_detailed">) => {
+    if (!requirement.id) return;
+    try {
+      await unIgnore(requirement.id);
+    } catch (error) {
+      // Error is handled in the hook
     }
   };
 
@@ -224,6 +242,8 @@ export default function ProjectDetailPage() {
         onCreateRequirement={() => setShowCreateDialog(true)}
         onEditRequirement={setEditingRequirement}
         onDeleteRequirement={setDeletingRequirement}
+        onIgnoreRequirement={handleIgnoreRequirement}
+        onUnIgnoreRequirement={handleUnIgnoreRequirement}
         onCreateAllocation={() => setShowCreateAllocationDialog(true)}
         onEditAllocation={setEditingAllocation}
         onDeleteAllocation={setDeletingAllocation}

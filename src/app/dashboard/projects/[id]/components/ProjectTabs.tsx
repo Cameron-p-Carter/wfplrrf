@@ -29,6 +29,8 @@ interface ProjectTabsProps {
   onCreateRequirement: () => void;
   onEditRequirement: (requirement: Tables<"project_requirements_detailed">) => void;
   onDeleteRequirement: (requirement: Tables<"project_requirements_detailed">) => void;
+  onIgnoreRequirement: (requirement: Tables<"project_requirements_detailed">) => void;
+  onUnIgnoreRequirement: (requirement: Tables<"project_requirements_detailed">) => void;
   onCreateAllocation: () => void;
   onEditAllocation: (allocation: Tables<"project_allocations_detailed">) => void;
   onDeleteAllocation: (allocation: Tables<"project_allocations_detailed">) => void;
@@ -50,6 +52,8 @@ export function ProjectTabs({
   onCreateRequirement,
   onEditRequirement,
   onDeleteRequirement,
+  onIgnoreRequirement,
+  onUnIgnoreRequirement,
   onCreateAllocation,
   onEditAllocation,
   onDeleteAllocation,
@@ -103,6 +107,8 @@ export function ProjectTabs({
           onCreateRequirement={onCreateRequirement}
           onEditRequirement={onEditRequirement}
           onDeleteRequirement={onDeleteRequirement}
+          onIgnoreRequirement={onIgnoreRequirement}
+          onUnIgnoreRequirement={onUnIgnoreRequirement}
           onCreateAllocation={onCreateAllocation}
           onEditAllocation={onEditAllocation}
           onDeleteAllocation={onDeleteAllocation}
@@ -124,6 +130,8 @@ export function ProjectTabs({
           onDeleteAllocation={onDeleteAllocation}
           onEditRequirement={onEditRequirement}
           onDeleteRequirement={onDeleteRequirement}
+          onIgnoreRequirement={onIgnoreRequirement}
+          onUnIgnoreRequirement={onUnIgnoreRequirement}
         />
       </TabsContent>
     </Tabs>

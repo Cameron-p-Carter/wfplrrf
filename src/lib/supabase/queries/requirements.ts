@@ -248,3 +248,29 @@ export async function deleteProjectRequirement(id: string): Promise<void> {
     handleDatabaseError(error, "delete project requirement");
   }
 }
+
+export async function ignoreProjectRequirement(id: string): Promise<void> {
+  try {
+    const { error } = await supabase
+      .from("project_resource_requirements")
+      .update({ ignored: true })
+      .eq("id", id);
+    
+    if (error) throw error;
+  } catch (error) {
+    handleDatabaseError(error, "ignore project requirement");
+  }
+}
+
+export async function unIgnoreProjectRequirement(id: string): Promise<void> {
+  try {
+    const { error } = await supabase
+      .from("project_resource_requirements")
+      .update({ ignored: false })
+      .eq("id", id);
+    
+    if (error) throw error;
+  } catch (error) {
+    handleDatabaseError(error, "un-ignore project requirement");
+  }
+}
