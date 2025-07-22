@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/breadcrumb";
 
 import { AppSidebar } from "./sidebar";
+import { TimePeriodProvider } from "@/lib/providers/time-period-provider";
 
 export default function DashboardLayout({
   children,
@@ -26,10 +27,11 @@ export default function DashboardLayout({
   const pathSegments = pathname.split("/").filter(Boolean);
 
   return (
-    <SidebarProvider>
-      <div className="flex h-screen w-screen bg-background">
-        <AppSidebar />
-        <div className="flex-1 w-full">
+    <TimePeriodProvider>
+      <SidebarProvider>
+        <div className="flex h-screen w-screen bg-background">
+          <AppSidebar />
+          <div className="flex-1 w-full">
           <div className="flex items-center gap-4 px-5 pt-5">
             <SidebarTrigger />
             <Breadcrumb>
@@ -68,6 +70,7 @@ export default function DashboardLayout({
         </div>
       </div>
       <Toaster />
-    </SidebarProvider>
+      </SidebarProvider>
+    </TimePeriodProvider>
   );
 }

@@ -24,6 +24,9 @@ import { useRoleTypes } from "@/lib/hooks/use-role-types";
 import { usePeople } from "@/lib/hooks/use-people";
 import { useProjects } from "@/lib/hooks/use-projects";
 import { useResourceAnalytics } from "@/lib/hooks/use-resource-analytics";
+import { useCurrentPeriodGaps } from "@/lib/hooks/use-current-period-gaps";
+import { TimePeriodSelector } from "@/components/ui/time-period-selector";
+import { useTimePeriod } from "@/lib/providers/time-period-provider";
 import { formatDate } from "@/lib/utils/date";
 
 export default function DashboardPage() {
@@ -31,6 +34,8 @@ export default function DashboardPage() {
   const { people, loading: peopleLoading } = usePeople();
   const { projects, loading: projectsLoading } = useProjects();
   const { overAllocatedPeople, peopleUtilization, utilizationStats, loading: analyticsLoading } = useResourceAnalytics();
+  const { gapsByRole, projectsWithGaps, totalGaps, criticalGaps, loading: gapsLoading } = useCurrentPeriodGaps();
+  const { period, range } = useTimePeriod();
 
   const activeProjects = projects.filter(project => {
     const now = new Date();
@@ -103,11 +108,14 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground">
-          Overview of your workforce planning
-        </p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+          <p className="text-muted-foreground">
+            Overview of your workforce planning
+          </p>
+        </div>
+        <TimePeriodSelector />
       </div>
 
       {/* Key Metrics */}
@@ -158,6 +166,113 @@ export default function DashboardPage() {
                 </Link>
               )}
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Under-utilized People Section */}
+      {utilizationStats.underUtilized > 0 && (
+        <Card className="border-yellow-200 bg-yellow-50/50">
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2 text-yellow-700">
+              <Users className="h-5 w-5" />
+              <span>Under-utilized Resources</span>
+            </CardTitle>
+            <CardDescription>
+              {utilizationStats.underUtilized} people have low utilization in {range.description.toLowerCase()}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {peopleUtilization
+                .filter(person => person.status === 'under-utilized')
+                .slice(0, 3)
+                .map((person, index) => (
+                  <div key={index} className="flex items-center justify-between p-2 bg-yellow-100/50 rounded">
+                    <div>
+                      <span className="font-medium">{person.person_name}</span>
+                      <div className="text-xs text-muted-foreground">{person.role_type_name}</div>
+                    </div>
+                    <Badge variant="outline" className="text-yellow-700 border-yellow-300">
+                      {person.utilization_percentage}% allocated
+                    </Badge>
+                  </div>
+                ))}
+              {utilizationStats.underUtilized > 3 && (
+                <Link href="/dashboard/analytics">
+                  <Button variant="outline" size="sm" className="w-full">
+                    View All Under-utilized <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </Link>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Current Period Gaps Section */}
+      {totalGaps > 0 && (
+        <Card className="border-orange-200 bg-orange-50/50">
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2 text-orange-700">
+              <AlertTriangle className="h-5 w-5" />
+              <span>Resource Gaps</span>
+            </CardTitle>
+            <CardDescription>
+              {totalGaps} unfilled requirements in {range.description.toLowerCase()}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {gapsLoading ? (
+              <div className="space-y-2">
+                {[...Array(3)].map((_, i) => (
+                  <div key={i} className="flex items-center space-x-2">
+                    <Skeleton className="h-4 w-[150px]" />
+                    <Skeleton className="h-4 w-16 ml-auto" />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  {gapsByRole.slice(0, 4).map((roleGap) => (
+                    <div key={roleGap.role_type_id} className="flex items-center justify-between p-2 bg-orange-100/50 rounded">
+                      <div>
+                        <span className="font-medium">{roleGap.role_type_name}</span>
+                        <div className="text-xs text-muted-foreground">
+                          {roleGap.projects_affected} project{roleGap.projects_affected !== 1 ? 's' : ''} affected
+                        </div>
+                      </div>
+                      <Badge variant="outline" className="text-orange-700 border-orange-300">
+                        {roleGap.total_gaps} gap{roleGap.total_gaps !== 1 ? 's' : ''}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+                
+                {projectsWithGaps.length > 0 && (
+                  <div className="pt-2 border-t border-orange-200">
+                    <div className="text-sm font-medium text-orange-700 mb-2">
+                      Projects needing attention:
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      {projectsWithGaps.slice(0, 3).map((project) => (
+                        <Link key={project.id} href={`/dashboard/projects/${project.id}?tab=resources`}>
+                          <Badge variant="outline" className="text-xs hover:bg-orange-100 cursor-pointer">
+                            {project.name} ({project.gap_count})
+                          </Badge>
+                        </Link>
+                      ))}
+                      {projectsWithGaps.length > 3 && (
+                        <Badge variant="outline" className="text-xs text-muted-foreground">
+                          +{projectsWithGaps.length - 3} more
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
       )}

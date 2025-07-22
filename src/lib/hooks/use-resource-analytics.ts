@@ -8,6 +8,7 @@ import {
   getPersonUtilization,
   getPeople
 } from "@/lib/supabase";
+import { useTimePeriod } from "@/lib/providers/time-period-provider";
 import type { Tables } from "@/types/supabase";
 
 export function useResourceAnalytics() {
@@ -15,6 +16,7 @@ export function useResourceAnalytics() {
   const [peopleUtilization, setPeopleUtilization] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { range } = useTimePeriod();
 
   const fetchAnalytics = async () => {
     try {
@@ -28,18 +30,14 @@ export function useResourceAnalytics() {
       
       setOverAllocatedPeople(overAllocated);
       
-      // Calculate current utilization for each person
-      const now = new Date();
-      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-      
+      // Calculate utilization for each person based on selected time period
       const utilizationPromises = people.map(async (person) => {
         if (!person.id) return null;
         
         const utilization = await getPersonUtilization(
           person.id,
-          startOfMonth.toISOString().split('T')[0],
-          endOfMonth.toISOString().split('T')[0]
+          range.startDate,
+          range.endDate
         );
         
         return {
@@ -67,7 +65,7 @@ export function useResourceAnalytics() {
 
   useEffect(() => {
     fetchAnalytics();
-  }, []);
+  }, [range.startDate, range.endDate]);
 
   const getUtilizationStats = () => {
     const total = peopleUtilization.length;
@@ -97,10 +95,11 @@ export function useResourceAnalytics() {
   };
 }
 
-export function usePersonUtilization(personId: string, startDate?: string, endDate?: string) {
+export function usePersonUtilization(personId: string, customStartDate?: string, customEndDate?: string) {
   const [utilization, setUtilization] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { range } = useTimePeriod();
 
   useEffect(() => {
     const fetchUtilization = async () => {
@@ -110,12 +109,11 @@ export function usePersonUtilization(personId: string, startDate?: string, endDa
         setLoading(true);
         setError(null);
         
-        // Default to current month if no dates provided
-        const now = new Date();
-        const defaultStart = startDate || new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
-        const defaultEnd = endDate || new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+        // Use custom dates if provided, otherwise use time period context
+        const startDate = customStartDate || range.startDate;
+        const endDate = customEndDate || range.endDate;
         
-        const result = await getPersonUtilization(personId, defaultStart, defaultEnd);
+        const result = await getPersonUtilization(personId, startDate, endDate);
         setUtilization(result);
       } catch (err) {
         const message = err instanceof Error ? err.message : "Failed to fetch person utilization";
@@ -126,7 +124,7 @@ export function usePersonUtilization(personId: string, startDate?: string, endDa
     };
 
     fetchUtilization();
-  }, [personId, startDate, endDate]);
+  }, [personId, customStartDate, customEndDate, range.startDate, range.endDate]);
 
   return {
     utilization,
