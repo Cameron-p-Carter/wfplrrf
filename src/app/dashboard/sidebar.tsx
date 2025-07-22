@@ -38,11 +38,6 @@ const items = [
     icon: Calendar,
   },
   {
-    title: "Analytics",
-    url: "/dashboard/analytics",
-    icon: BarChart3,
-  },
-  {
     title: "Role Types",
     url: "/dashboard/role-types",
     icon: UserCheck,

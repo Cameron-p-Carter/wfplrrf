@@ -99,7 +99,7 @@ export default function DashboardPage() {
       description: "Overall resource utilization",
       icon: TrendingUp,
       loading: analyticsLoading,
-      href: "/dashboard/analytics",
+      href: "/dashboard/people",
     },
     {
       title: "Over-allocated",
@@ -107,7 +107,7 @@ export default function DashboardPage() {
       description: "People over 100% capacity",
       icon: AlertTriangle,
       loading: analyticsLoading,
-      href: "/dashboard/analytics",
+      href: "/dashboard/people",
       alert: utilizationStats.overAllocated > 0,
     },
   ];
@@ -165,7 +165,7 @@ export default function DashboardPage() {
                 </div>
               ))}
               {overAllocatedPeople.length > 3 && (
-                <Link href="/dashboard/analytics">
+                <Link href="/dashboard/people">
                   <Button variant="outline" size="sm" className="w-full">
                     View All Conflicts <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
@@ -444,12 +444,6 @@ export default function DashboardPage() {
                 <Button variant="outline" className="w-full justify-start">
                   <UserCheck className="mr-2 h-4 w-4" />
                   Manage Role Types
-                </Button>
-              </Link>
-              <Link href="/dashboard/analytics">
-                <Button variant="outline" className="w-full justify-start">
-                  <BarChart3 className="mr-2 h-4 w-4" />
-                  View Analytics
                 </Button>
               </Link>
               <Link href="/dashboard/leave">

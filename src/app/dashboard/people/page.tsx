@@ -16,6 +16,8 @@ import { TimePeriodSelector } from "@/components/ui/time-period-selector";
 import { useTimePeriod } from "@/lib/providers/time-period-provider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PersonForm } from "./components/person-form";
+import { ProjectSuggestionsDialog } from "@/components/ui/project-suggestions-dialog";
+import { useProjectSuggestions } from "@/lib/hooks/use-project-suggestions";
 import type { Tables } from "@/types/supabase";
 
 type UtilizationFilter = "all" | "under-utilized" | "utilized" | "over-utilized";
@@ -24,12 +26,15 @@ export default function PeoplePage() {
   const { people, loading, create, update, remove } = usePeople();
   const { peopleUtilization, loading: analyticsLoading } = useResourceAnalytics();
   const { range } = useTimePeriod();
+  const { suggestions, loading: suggestionsLoading, fetchSuggestions } = useProjectSuggestions();
   const [searchTerm, setSearchTerm] = useState("");
   const [utilizationFilter, setUtilizationFilter] = useState<UtilizationFilter>("all");
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [editingPerson, setEditingPerson] = useState<Tables<"people_with_roles"> | null>(null);
   const [deletingPerson, setDeletingPerson] = useState<Tables<"people_with_roles"> | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [selectedPerson, setSelectedPerson] = useState<Tables<"people_with_roles"> | null>(null);
 
   const getPersonUtilization = (personId: string) => {
     const utilization = peopleUtilization.find(u => u.person_id === personId);
@@ -118,6 +123,21 @@ export default function PeoplePage() {
     }
   };
 
+  const handlePersonClick = async (person: Tables<"people_with_roles">) => {
+    const utilization = getPersonUtilization(person.id!);
+    const isUnderUtilized = getUtilizationStatus(utilization) === "under-utilized";
+    
+    if (isUnderUtilized && person.role_type_name) {
+      // Show project suggestions for under-utilized people
+      setSelectedPerson(person);
+      setShowSuggestions(true);
+      await fetchSuggestions(person.role_type_name);
+    } else {
+      // Navigate to person detail page for others
+      window.location.href = `/dashboard/people/${person.id}`;
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-start justify-between">
@@ -200,14 +220,17 @@ export default function PeoplePage() {
                 ) : (
                       filteredAndSortedPeople.map((person) => {
                         const utilization = getPersonUtilization(person.id!);
+                        const isUnderUtilized = getUtilizationStatus(utilization) === "under-utilized";
                         return (
-                          <TableRow key={person.id}>
+                          <TableRow key={person.id} className={isUnderUtilized ? "bg-yellow-50/50" : ""}>
                             <TableCell className="font-medium">
                               <button
-                                onClick={() => window.location.href = `/dashboard/people/${person.id}`}
-                                className="text-left hover:underline"
+                                onClick={() => handlePersonClick(person)}
+                                className={`text-left hover:underline ${isUnderUtilized ? 'text-yellow-700 font-semibold' : ''}`}
+                                title={isUnderUtilized ? 'Click to see suggested projects' : 'Click to view profile'}
                               >
                                 {person.name}
+                                {isUnderUtilized && <span className="ml-1 text-xs text-yellow-600">(suggestions available)</span>}
                               </button>
                             </TableCell>
                             <TableCell>
@@ -225,14 +248,20 @@ export default function PeoplePage() {
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  onClick={() => setEditingPerson(person)}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setEditingPerson(person);
+                                  }}
                                 >
                                   <Edit className="h-4 w-4" />
                                 </Button>
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  onClick={() => setDeletingPerson(person)}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setDeletingPerson(person);
+                                  }}
                                 >
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
@@ -309,6 +338,16 @@ export default function PeoplePage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Project Suggestions Dialog */}
+      <ProjectSuggestionsDialog
+        open={showSuggestions}
+        onOpenChange={setShowSuggestions}
+        personName={selectedPerson?.name || ""}
+        personRoleType={selectedPerson?.role_type_name || ""}
+        suggestions={suggestions}
+        loading={suggestionsLoading}
+      />
     </div>
   );
 }
