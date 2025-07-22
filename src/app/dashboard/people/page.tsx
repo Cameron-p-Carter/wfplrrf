@@ -12,27 +12,67 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { usePeople } from "@/lib/hooks/use-people";
 import { useResourceAnalytics } from "@/lib/hooks/use-resource-analytics";
+import { TimePeriodSelector } from "@/components/ui/time-period-selector";
+import { useTimePeriod } from "@/lib/providers/time-period-provider";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PersonForm } from "./components/person-form";
 import type { Tables } from "@/types/supabase";
+
+type UtilizationFilter = "all" | "under-utilized" | "utilized" | "over-utilized";
 
 export default function PeoplePage() {
   const { people, loading, create, update, remove } = usePeople();
   const { peopleUtilization, loading: analyticsLoading } = useResourceAnalytics();
+  const { range } = useTimePeriod();
   const [searchTerm, setSearchTerm] = useState("");
+  const [utilizationFilter, setUtilizationFilter] = useState<UtilizationFilter>("all");
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [editingPerson, setEditingPerson] = useState<Tables<"people_with_roles"> | null>(null);
   const [deletingPerson, setDeletingPerson] = useState<Tables<"people_with_roles"> | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const filteredPeople = people.filter(person =>
-    person.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    person.role_type_name?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
   const getPersonUtilization = (personId: string) => {
     const utilization = peopleUtilization.find(u => u.person_id === personId);
     return utilization ? utilization.utilization_percentage : 0;
   };
+
+  const getUtilizationStatus = (utilization: number): UtilizationFilter => {
+    if (utilization > 100) return "over-utilized";
+    if (utilization >= 50) return "utilized";
+    return "under-utilized";
+  };
+
+  const filteredAndSortedPeople = people
+    .filter(person => {
+      // Text search filter
+      const matchesSearch = person.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        person.role_type_name?.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      if (!matchesSearch) return false;
+      
+      // Utilization filter
+      if (utilizationFilter === "all") return true;
+      
+      const utilization = getPersonUtilization(person.id!);
+      const status = getUtilizationStatus(utilization);
+      return status === utilizationFilter;
+    })
+    .sort((a, b) => {
+      // Sort by utilization percentage
+      const aUtil = getPersonUtilization(a.id!);
+      const bUtil = getPersonUtilization(b.id!);
+      
+      switch (utilizationFilter) {
+        case "over-utilized":
+          return bUtil - aUtil; // Highest first
+        case "under-utilized":
+          return aUtil - bUtil; // Lowest first
+        case "utilized":
+          return Math.abs(bUtil - 75) - Math.abs(aUtil - 75); // Closest to 75% first
+        default:
+          return bUtil - aUtil; // Highest first by default
+      }
+    });
 
   const getUtilizationBadge = (utilization: number) => {
     if (utilization > 100) {
@@ -80,24 +120,27 @@ export default function PeoplePage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-start justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">People</h1>
           <p className="text-muted-foreground">
             Manage people in your organization
           </p>
         </div>
-        <Button onClick={() => setShowCreateDialog(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add Person
-        </Button>
+        <div className="flex items-center gap-4">
+          <TimePeriodSelector compact />
+          <Button onClick={() => setShowCreateDialog(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add Person
+          </Button>
+        </div>
       </div>
 
       <Card>
         <CardHeader>
           <CardTitle>People</CardTitle>
           <CardDescription>
-            View and manage all people in your organization
+            View and manage all people - utilization based on {range.description.toLowerCase()}
           </CardDescription>
           <div className="flex items-center space-x-2">
             <div className="relative flex-1 max-w-sm">
@@ -109,6 +152,17 @@ export default function PeoplePage() {
                 className="pl-8"
               />
             </div>
+            <Select value={utilizationFilter} onValueChange={(value: UtilizationFilter) => setUtilizationFilter(value)}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All People</SelectItem>
+                <SelectItem value="under-utilized">Under-utilized (&lt;50%)</SelectItem>
+                <SelectItem value="utilized">Utilized (50-100%)</SelectItem>
+                <SelectItem value="over-utilized">Over-utilized (&gt;100%)</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </CardHeader>
         <CardContent>
@@ -134,14 +188,17 @@ export default function PeoplePage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredPeople.length === 0 ? (
+                {filteredAndSortedPeople.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
-                      {searchTerm ? "No people found matching your search." : "No people found. Add your first person to get started."}
+                      {searchTerm || utilizationFilter !== "all" 
+                        ? "No people found matching your filters." 
+                        : "No people found. Add your first person to get started."
+                      }
                     </TableCell>
                   </TableRow>
                 ) : (
-                      filteredPeople.map((person) => {
+                      filteredAndSortedPeople.map((person) => {
                         const utilization = getPersonUtilization(person.id!);
                         return (
                           <TableRow key={person.id}>

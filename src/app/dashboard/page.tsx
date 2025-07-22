@@ -205,7 +205,7 @@ export default function DashboardPage() {
                   </div>
                 ))}
               {utilizationStats.underUtilized > 3 && (
-                <Link href="/dashboard/analytics">
+                <Link href="/dashboard/people">
                   <Button variant="outline" size="sm" className="w-full">
                     View All Under-utilized <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
