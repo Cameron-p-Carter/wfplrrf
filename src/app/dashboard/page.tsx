@@ -25,7 +25,9 @@ import { usePeople } from "@/lib/hooks/use-people";
 import { useProjects } from "@/lib/hooks/use-projects";
 import { useResourceAnalytics } from "@/lib/hooks/use-resource-analytics";
 import { useCurrentPeriodGaps } from "@/lib/hooks/use-current-period-gaps";
+import { useUtilizationTimeline } from "@/lib/hooks/use-utilization-timeline";
 import { TimePeriodSelector } from "@/components/ui/time-period-selector";
+import { UtilizationChart } from "@/components/ui/utilization-chart";
 import { useTimePeriod } from "@/lib/providers/time-period-provider";
 import { formatDate } from "@/lib/utils/date";
 
@@ -35,6 +37,7 @@ export default function DashboardPage() {
   const { projects, loading: projectsLoading } = useProjects();
   const { overAllocatedPeople, peopleUtilization, utilizationStats, loading: analyticsLoading } = useResourceAnalytics();
   const { gapsByRole, projectsWithGaps, totalGaps, criticalGaps, loading: gapsLoading } = useCurrentPeriodGaps();
+  const { timelineData, currentAverage, trend, loading: timelineLoading } = useUtilizationTimeline();
   const { period, range } = useTimePeriod();
 
   const activeProjects = projects.filter(project => {
@@ -349,66 +352,37 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        {/* People Utilization Summary */}
+        {/* Team Utilization Timeline */}
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>Team Utilization</CardTitle>
-                <CardDescription>Current capacity usage</CardDescription>
-              </div>
-              <Link href="/dashboard/people">
-                <Button variant="ghost" size="sm">
-                  View All <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </Link>
-            </div>
+            <CardTitle>Team Utilization</CardTitle>
+            <CardDescription>Average utilization over time</CardDescription>
           </CardHeader>
           <CardContent>
-            {analyticsLoading ? (
-              <div className="space-y-3">
-                {[...Array(4)].map((_, i) => (
-                  <div key={i} className="flex items-center space-x-2">
-                    <Skeleton className="h-4 w-[120px]" />
-                    <Skeleton className="h-4 w-16 ml-auto" />
-                  </div>
-                ))}
-              </div>
-            ) : peopleUtilization.length === 0 ? (
-              <div className="text-center py-4">
-                <p className="text-sm text-muted-foreground mb-2">No utilization data</p>
-                <Link href="/dashboard/people">
-                  <Button size="sm">Add People</Button>
-                </Link>
-              </div>
+            {timelineLoading || peopleUtilization.length === 0 ? (
+              <UtilizationChart data={[]} loading={timelineLoading} height={140} />
             ) : (
-              <div className="space-y-3">
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span>Average Utilization</span>
-                    <span className="font-medium">{utilizationStats.averageUtilization}%</span>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">
+                    {range.description}
+                  </span>
+                  <div className="flex items-center gap-4">
+                    <span className="text-muted-foreground">
+                      Average: <span className="font-medium text-foreground">{currentAverage}%</span>
+                    </span>
+                    <span className={`text-xs px-2 py-1 rounded-full ${
+                      trend === 'increasing' ? 'bg-green-100 text-green-700' :
+                      trend === 'decreasing' ? 'bg-red-100 text-red-700' :
+                      'bg-gray-100 text-gray-700'
+                    }`}>
+                      {trend === 'increasing' ? '↗ Increasing' :
+                       trend === 'decreasing' ? '↘ Decreasing' :
+                       '→ Stable'}
+                    </span>
                   </div>
-                  <Progress value={utilizationStats.averageUtilization} className="h-2" />
                 </div>
-                
-                <div className="space-y-2">
-                  {peopleUtilization
-                    .sort((a, b) => b.utilization_percentage - a.utilization_percentage)
-                    .slice(0, 4)
-                    .map((person, index) => (
-                      <Link key={index} href={`/dashboard/people/${person.person_id}`}>
-                        <div className="flex items-center justify-between p-2 rounded hover:bg-muted/50 cursor-pointer">
-                          <span className="text-sm truncate">{person.person_name}</span>
-                          <Badge variant={
-                            person.utilization_percentage > 100 ? "destructive" :
-                            person.utilization_percentage >= 80 ? "default" : "secondary"
-                          }>
-                            {person.utilization_percentage}%
-                          </Badge>
-                        </div>
-                      </Link>
-                    ))}
-                </div>
+                <UtilizationChart data={timelineData} loading={timelineLoading} height={140} />
               </div>
             )}
           </CardContent>
