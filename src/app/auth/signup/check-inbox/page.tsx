@@ -1,12 +1,13 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
-export default function CheckInboxPage() {
+function CheckInboxContent() {
   const searchParams = useSearchParams();
   const email = searchParams.get("email");
 
@@ -19,7 +20,7 @@ export default function CheckInboxPage() {
               <h1 className="text-2xl font-bold">Check your inbox</h1>
               <p className="text-balance text-muted-foreground">
                 We've sent a confirmation email to{" "}
-                <span className="font-semibold">{email}</span>. Please check your
+                <span className="font-semibold">{email || "your email"}</span>. Please check your
                 inbox and click the link to verify your email address.
               </p>
               <p className="text-sm text-muted-foreground">
@@ -33,5 +34,13 @@ export default function CheckInboxPage() {
         </Card>
       </div>
     </div>
+  );
+}
+
+export default function CheckInboxPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <CheckInboxContent />
+    </Suspense>
   );
 }
