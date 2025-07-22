@@ -10,6 +10,14 @@ export function TimelineLegend() {
         <span className="text-xs">Requirement Block</span>
       </div>
       <div className="flex items-center space-x-2">
+        <div className="w-4 h-4 bg-gray-100 border-2 border-gray-400 border-dashed rounded auto-gen-leave-coverage"></div>
+        <span className="text-xs">Auto-generated (Leave Coverage)</span>
+      </div>
+      <div className="flex items-center space-x-2">
+        <div className="w-4 h-4 bg-gray-100 border-2 border-gray-400 border-dashed rounded auto-gen-partial-gap"></div>
+        <span className="text-xs">Auto-generated (Partial Gap)</span>
+      </div>
+      <div className="flex items-center space-x-2">
         <div className="w-4 h-4 bg-white border border-gray-400 border-dashed rounded"></div>
         <span className="text-xs">Open Position</span>
       </div>
