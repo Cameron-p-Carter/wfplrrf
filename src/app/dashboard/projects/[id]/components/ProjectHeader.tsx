@@ -56,9 +56,6 @@ export function ProjectHeader({ project, loading, onBack }: ProjectHeaderProps) 
           <p className="text-sm text-gray-600">
             {formatDate(project.start_date)} - {formatDate(project.end_date)}
           </p>
-          {project.description && (
-            <p className="text-sm text-gray-500 mt-1">{project.description}</p>
-          )}
         </div>
       </div>
       <ProjectStatusBadge project={project} />
