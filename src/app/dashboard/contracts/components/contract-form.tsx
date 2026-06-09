@@ -42,13 +42,10 @@ export function ContractForm({ initialData, onSubmit, onCancel }: ContractFormPr
   const handleSubmit = async (data: ContractFormData) => {
     try {
       setIsSubmitting(true);
-      const payload = {
+      await onSubmit({
         ...data,
         end_date: isPermanent ? undefined : (data.end_date || undefined),
-        length_months: data.length_months ?? null,
-        notes: data.notes || null,
-      };
-      await onSubmit(payload);
+      });
     } catch {
       // Error handled in parent
     } finally {
