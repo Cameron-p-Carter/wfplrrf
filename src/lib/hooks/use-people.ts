@@ -15,7 +15,7 @@ const usePeopleCrud = createCrudHook<Tables<"people_with_roles"> & { id: string 
     delete: deletePerson,
   },
   {
-    sortBy: "name",
+    sortBy: "display_name",
     refetchOnCreateUpdate: true, // Needed to get updated view with role info
   }
 );
