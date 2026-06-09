@@ -1001,7 +1001,7 @@ export async function getPeople() {
   const { data, error } = await supabase
     .from("people_with_roles")
     .select("*")
-    .order("name");
+    .order("display_name");
   
   if (error) throw error;
   return data;
