@@ -1,5 +1,6 @@
 import { supabase, hasDateOverlap } from "../shared/base-queries";
 import { handleDatabaseError } from "../shared/error-handling";
+import { checkPersonContractCoverage } from "./contracts";
 import type { Tables, TablesInsert, TablesUpdate } from "@/types/supabase";
 
 // Project Allocations CRUD operations
@@ -49,6 +50,15 @@ export async function getAllAllocations(): Promise<Tables<"project_allocations_d
 
 export async function createProjectAllocation(allocation: TablesInsert<"project_allocations">): Promise<Tables<"project_allocations">> {
   try {
+    const hasCoverage = await checkPersonContractCoverage(
+      allocation.person_id,
+      allocation.start_date,
+      allocation.end_date
+    );
+    if (!hasCoverage) {
+      throw new Error("This person does not have an active contract covering the allocation period.");
+    }
+
     const { data, error } = await supabase
       .from("project_allocations")
       .insert(allocation)
@@ -71,6 +81,17 @@ export async function createProjectAllocation(allocation: TablesInsert<"project_
 
 export async function updateProjectAllocation(id: string, allocation: TablesUpdate<"project_allocations">): Promise<Tables<"project_allocations">> {
   try {
+    if (allocation.person_id && allocation.start_date && allocation.end_date) {
+      const hasCoverage = await checkPersonContractCoverage(
+        allocation.person_id,
+        allocation.start_date,
+        allocation.end_date
+      );
+      if (!hasCoverage) {
+        throw new Error("This person does not have an active contract covering the allocation period.");
+      }
+    }
+
     const { data, error } = await supabase
       .from("project_allocations")
       .update(allocation)

@@ -14,7 +14,7 @@ import { projectAllocationFormSchema, type ProjectAllocationFormFormData } from 
 import { formatDateForInput, formatDate } from "@/lib/utils/date";
 import { usePeople } from "@/lib/hooks/use-people";
 import { useRoleTypes } from "@/lib/hooks/use-role-types";
-import { getPersonLeaveConflicts } from "@/lib/supabase";
+import { getPersonLeaveConflicts, checkPersonContractCoverage } from "@/lib/supabase";
 import type { Tables } from "@/types/supabase";
 
 interface AllocationFormProps {
@@ -38,6 +38,7 @@ export function AllocationForm({ initialData, onSubmit, onCancel }: AllocationFo
     unapproved: Tables<"leave_periods">[];
   } | null>(null);
   const [showApprovedLeaveDialog, setShowApprovedLeaveDialog] = useState(false);
+  const [hasContractCoverage, setHasContractCoverage] = useState<boolean | null>(null);
   const { people, loading: peopleLoading } = usePeople();
   const { roleTypes, loading: roleTypesLoading } = useRoleTypes();
 
@@ -55,27 +56,29 @@ export function AllocationForm({ initialData, onSubmit, onCancel }: AllocationFo
   // Watch form values for leave conflict checking
   const watchedValues = form.watch();
 
-  // Check for leave conflicts when person or dates change
+  // Check contract coverage and leave conflicts when person or dates change
   useEffect(() => {
-    const checkLeaveConflicts = async () => {
+    const checkAvailability = async () => {
       if (watchedValues.person_id && watchedValues.start_date && watchedValues.end_date) {
         try {
-          const conflicts = await getPersonLeaveConflicts(
-            watchedValues.person_id,
-            watchedValues.start_date,
-            watchedValues.end_date
-          );
+          const [conflicts, coverage] = await Promise.all([
+            getPersonLeaveConflicts(watchedValues.person_id, watchedValues.start_date, watchedValues.end_date),
+            checkPersonContractCoverage(watchedValues.person_id, watchedValues.start_date, watchedValues.end_date),
+          ]);
           setLeaveConflicts(conflicts);
+          setHasContractCoverage(coverage);
         } catch (error) {
-          console.error("Failed to check leave conflicts:", error);
+          console.error("Failed to check availability:", error);
           setLeaveConflicts(null);
+          setHasContractCoverage(null);
         }
       } else {
         setLeaveConflicts(null);
+        setHasContractCoverage(null);
       }
     };
 
-    checkLeaveConflicts();
+    checkAvailability();
   }, [watchedValues.person_id, watchedValues.start_date, watchedValues.end_date]);
 
   const handleSubmit = async (data: ProjectAllocationFormFormData) => {
@@ -246,6 +249,16 @@ export function AllocationForm({ initialData, onSubmit, onCancel }: AllocationFo
           />
         </div>
 
+        {/* Contract Coverage Block */}
+        {hasContractCoverage === false && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              <strong>No active contract.</strong> This person does not have a contract covering the selected period. Add a contract in the Contracts section before allocating.
+            </AlertDescription>
+          </Alert>
+        )}
+
         {/* Leave Conflict Warnings */}
         {leaveConflicts && (leaveConflicts.pending.length > 0 || leaveConflicts.approved.length > 0) && (
           <div className="space-y-2">
@@ -287,7 +300,7 @@ export function AllocationForm({ initialData, onSubmit, onCancel }: AllocationFo
           <Button type="button" variant="outline" onClick={onCancel}>
             Cancel
           </Button>
-          <Button type="submit" disabled={isSubmitting || people.length === 0 || roleTypes.length === 0}>
+          <Button type="submit" disabled={isSubmitting || people.length === 0 || roleTypes.length === 0 || hasContractCoverage === false}>
             {isSubmitting ? "Saving..." : initialData ? "Update" : "Create"}
           </Button>
         </div>

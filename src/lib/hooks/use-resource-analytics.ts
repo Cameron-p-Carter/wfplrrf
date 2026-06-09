@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { 
+import {
   getAllAllocations,
   getOverAllocatedPeople,
   getPersonUtilization,
-  getPeople
+  getPeople,
+  getPeopleWithContractCoverage,
 } from "@/lib/supabase";
 import { useTimePeriod } from "@/lib/providers/time-period-provider";
 import type { Tables } from "@/types/supabase";
@@ -23,15 +24,19 @@ export function useResourceAnalytics() {
       setLoading(true);
       setError(null);
       
-      const [overAllocated, people] = await Promise.all([
+      const [overAllocated, people, coveredIds] = await Promise.all([
         getOverAllocatedPeople(),
-        getPeople()
+        getPeople(),
+        getPeopleWithContractCoverage(range.startDate, range.endDate),
       ]);
-      
+
       setOverAllocatedPeople(overAllocated);
-      
-      // Calculate utilization for each person based on selected time period
-      const utilizationPromises = people.map(async (person) => {
+
+      const coveredSet = new Set(coveredIds);
+      const eligiblePeople = people.filter((p) => p.id && coveredSet.has(p.id));
+
+      // Calculate utilization only for people with contract coverage in this period
+      const utilizationPromises = eligiblePeople.map(async (person) => {
         if (!person.id) return null;
         
         const utilization = await getPersonUtilization(

@@ -13,7 +13,7 @@ import { Calendar, User, Percent, AlertTriangle, AlertCircle } from "lucide-reac
 import { usePeople } from "@/lib/hooks/use-people";
 import { useResourceAnalytics } from "@/lib/hooks/use-resource-analytics";
 import { formatDate } from "@/lib/utils/date";
-import { getPersonLeaveConflicts } from "@/lib/supabase";
+import { getPersonLeaveConflicts, checkPersonContractCoverage } from "@/lib/supabase";
 import type { Tables } from "@/types/supabase";
 
 interface SmartAllocationFormProps {
@@ -78,6 +78,7 @@ export function SmartAllocationForm({ initialData, prefilledData, onSubmit, onCa
     unapproved: Tables<"leave_periods">[];
   } | null>(null);
   const [showApprovedLeaveDialog, setShowApprovedLeaveDialog] = useState(false);
+  const [hasContractCoverage, setHasContractCoverage] = useState<boolean | null>(null);
   const { people, loading: peopleLoading } = usePeople();
   const { peopleUtilization, loading: utilizationLoading } = useResourceAnalytics();
 
@@ -126,27 +127,29 @@ export function SmartAllocationForm({ initialData, prefilledData, onSubmit, onCa
 
   const sortedPeople = getSortedPeople();
 
-  // Check for leave conflicts when person or dates change
+  // Check contract coverage and leave conflicts when person or dates change
   useEffect(() => {
-    const checkLeaveConflicts = async () => {
+    const checkAvailability = async () => {
       if (formData.person_id && formData.start_date && formData.end_date) {
         try {
-          const conflicts = await getPersonLeaveConflicts(
-            formData.person_id,
-            formData.start_date,
-            formData.end_date
-          );
+          const [conflicts, coverage] = await Promise.all([
+            getPersonLeaveConflicts(formData.person_id, formData.start_date, formData.end_date),
+            checkPersonContractCoverage(formData.person_id, formData.start_date, formData.end_date),
+          ]);
           setLeaveConflicts(conflicts);
+          setHasContractCoverage(coverage);
         } catch (error) {
-          console.error("Failed to check leave conflicts:", error);
+          console.error("Failed to check availability:", error);
           setLeaveConflicts(null);
+          setHasContractCoverage(null);
         }
       } else {
         setLeaveConflicts(null);
+        setHasContractCoverage(null);
       }
     };
 
-    checkLeaveConflicts();
+    checkAvailability();
   }, [formData.person_id, formData.start_date, formData.end_date]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -390,6 +393,16 @@ export function SmartAllocationForm({ initialData, prefilledData, onSubmit, onCa
 
       <Separator />
 
+      {/* Contract Coverage Block */}
+      {hasContractCoverage === false && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            <strong>No active contract.</strong> This person does not have a contract covering the selected period. Add a contract in the Contracts section before allocating.
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Leave Conflict Warnings */}
       {leaveConflicts && (leaveConflicts.pending.length > 0 || leaveConflicts.approved.length > 0) && (
         <div className="space-y-2">
@@ -445,7 +458,7 @@ export function SmartAllocationForm({ initialData, prefilledData, onSubmit, onCa
         <Button type="button" variant="outline" onClick={onCancel}>
           Cancel
         </Button>
-        <Button type="submit" disabled={isSubmitting || !formData.person_id}>
+        <Button type="submit" disabled={isSubmitting || !formData.person_id || hasContractCoverage === false}>
           {isSubmitting ? "Allocating..." : "Allocate"}
         </Button>
       </div>

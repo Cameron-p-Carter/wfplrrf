@@ -106,3 +106,44 @@ export async function deleteContract(id: string): Promise<void> {
     handleDatabaseError(error, "delete contract");
   }
 }
+
+export async function checkPersonContractCoverage(
+  personId: string,
+  startDate: string,
+  endDate: string
+): Promise<boolean> {
+  try {
+    const { data, error } = await supabase
+      .from("contracts")
+      .select("id")
+      .eq("person_id", personId)
+      .in("status", ["active", "renewed"])
+      .lte("start_date", endDate)
+      .or(`end_date.is.null,end_date.gte.${startDate}`)
+      .limit(1);
+
+    if (error) throw error;
+    return (data?.length ?? 0) > 0;
+  } catch (error) {
+    handleDatabaseError(error, "check contract coverage");
+  }
+}
+
+export async function getPeopleWithContractCoverage(
+  startDate: string,
+  endDate: string
+): Promise<string[]> {
+  try {
+    const { data, error } = await supabase
+      .from("contracts")
+      .select("person_id")
+      .in("status", ["active", "renewed"])
+      .lte("start_date", endDate)
+      .or(`end_date.is.null,end_date.gte.${startDate}`);
+
+    if (error) throw error;
+    return [...new Set((data ?? []).map((c) => c.person_id as string))];
+  } catch (error) {
+    handleDatabaseError(error, "get people with contract coverage");
+  }
+}
