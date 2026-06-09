@@ -6,7 +6,8 @@ export const roleTypeSchema = z.object({
 });
 
 export const personSchema = z.object({
-  name: z.string().min(1, "Person name is required").max(100, "Name must be less than 100 characters"),
+  first_name: z.string().min(1, "First name is required").max(100, "First name must be less than 100 characters"),
+  last_name: z.string().min(1, "Last name is required").max(100, "Last name must be less than 100 characters"),
   role_type_id: z.string().min(1, "Role type is required"),
 });
 

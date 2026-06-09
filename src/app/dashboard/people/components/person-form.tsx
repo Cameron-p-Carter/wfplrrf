@@ -23,7 +23,8 @@ export function PersonForm({ initialData, onSubmit, onCancel }: PersonFormProps)
   const form = useForm<PersonFormData>({
     resolver: zodResolver(personSchema),
     defaultValues: {
-      name: initialData?.name || "",
+      first_name: initialData?.first_name || "",
+      last_name: initialData?.last_name || "",
       role_type_id: initialData?.role_type_id || "",
     },
   });
@@ -44,12 +45,26 @@ export function PersonForm({ initialData, onSubmit, onCancel }: PersonFormProps)
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
         <FormField
           control={form.control}
-          name="name"
+          name="first_name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Name</FormLabel>
+              <FormLabel>First Name</FormLabel>
               <FormControl>
-                <Input placeholder="e.g. John Doe" {...field} />
+                <Input placeholder="e.g. John" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="last_name"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Last Name</FormLabel>
+              <FormControl>
+                <Input placeholder="e.g. Doe" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>

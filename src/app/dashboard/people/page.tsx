@@ -91,19 +91,19 @@ export default function PeoplePage() {
     }
   };
 
-  const handleCreate = async (data: { name: string; role_type_id: string }) => {
+  const handleCreate = async (data: { first_name: string; last_name: string; role_type_id: string }) => {
     try {
-      await create(data);
+      await create({ ...data, display_name: `${data.first_name} ${data.last_name}` });
       setShowCreateDialog(false);
     } catch (error) {
       // Error is handled in the hook
     }
   };
 
-  const handleUpdate = async (data: { name: string; role_type_id: string }) => {
+  const handleUpdate = async (data: { first_name: string; last_name: string; role_type_id: string }) => {
     if (!editingPerson?.id) return;
     try {
-      await update(editingPerson.id, data);
+      await update(editingPerson.id, { ...data, display_name: `${data.first_name} ${data.last_name}` });
       setEditingPerson(null);
     } catch (error) {
       // Error is handled in the hook
@@ -302,7 +302,8 @@ export default function PeoplePage() {
           {editingPerson && (
             <PersonForm
               initialData={{
-                name: editingPerson.name || "",
+                first_name: editingPerson.first_name || "",
+                last_name: editingPerson.last_name || "",
                 role_type_id: editingPerson.role_type_id || "",
               }}
               onSubmit={handleUpdate}
@@ -318,7 +319,7 @@ export default function PeoplePage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Person</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete "{deletingPerson?.name}"? This action cannot be undone.
+              Are you sure you want to delete "{deletingPerson?.display_name}"? This action cannot be undone.
               {deletingPerson && (
                 <div className="mt-2 text-sm text-muted-foreground">
                   This will only work if this person has no active project allocations.
@@ -343,7 +344,7 @@ export default function PeoplePage() {
       <ProjectSuggestionsDialog
         open={showSuggestions}
         onOpenChange={setShowSuggestions}
-        personName={selectedPerson?.name || ""}
+        personName={selectedPerson?.display_name || ""}
         personRoleType={selectedPerson?.role_type_name || ""}
         suggestions={suggestions}
         loading={suggestionsLoading}
