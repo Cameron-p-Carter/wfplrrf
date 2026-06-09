@@ -135,7 +135,7 @@ export function AllocationForm({ initialData, onSubmit, onCancel }: AllocationFo
                 <SelectContent>
                   {people.map((person) => (
                     <SelectItem key={person.id} value={person.id!}>
-                      {person.name} ({person.role_type_name})
+                      {person.display_name} ({person.role_type_name})
                     </SelectItem>
                   ))}
                 </SelectContent>

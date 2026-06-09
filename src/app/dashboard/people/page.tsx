@@ -50,7 +50,7 @@ export default function PeoplePage() {
   const filteredAndSortedPeople = people
     .filter(person => {
       // Text search filter
-      const matchesSearch = person.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      const matchesSearch = person.display_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         person.role_type_name?.toLowerCase().includes(searchTerm.toLowerCase());
       
       if (!matchesSearch) return false;
@@ -229,7 +229,7 @@ export default function PeoplePage() {
                                 className={`text-left hover:underline ${isUnderUtilized ? 'text-yellow-700 font-semibold' : ''}`}
                                 title={isUnderUtilized ? 'Click to see suggested projects' : 'Click to view profile'}
                               >
-                                {person.name}
+                                {person.display_name}
                                 {isUnderUtilized && <span className="ml-1 text-xs text-yellow-600">(suggestions available)</span>}
                               </button>
                             </TableCell>

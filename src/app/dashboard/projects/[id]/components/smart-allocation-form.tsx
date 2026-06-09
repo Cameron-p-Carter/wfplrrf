@@ -218,7 +218,7 @@ export function SmartAllocationForm({ initialData, prefilledData, onSubmit, onCa
                     <div className="flex items-center space-x-3">
                       <User className="h-4 w-4 text-green-600" />
                       <div>
-                        <p className="font-medium">{person.name}</p>
+                        <p className="font-medium">{person.display_name}</p>
                         <p className="text-sm text-muted-foreground">{person.role_type_name}</p>
                       </div>
                     </div>
@@ -251,7 +251,7 @@ export function SmartAllocationForm({ initialData, prefilledData, onSubmit, onCa
                     <div className="flex items-center space-x-3">
                       <User className="h-4 w-4 text-blue-600" />
                       <div>
-                        <p className="font-medium">{person.name}</p>
+                        <p className="font-medium">{person.display_name}</p>
                         <p className="text-sm text-muted-foreground">{person.role_type_name}</p>
                       </div>
                     </div>
@@ -284,7 +284,7 @@ export function SmartAllocationForm({ initialData, prefilledData, onSubmit, onCa
                     <div className="flex items-center space-x-3">
                       <User className="h-4 w-4 text-orange-600" />
                       <div>
-                        <p className="font-medium">{person.name}</p>
+                        <p className="font-medium">{person.display_name}</p>
                         <p className="text-sm text-muted-foreground">{person.role_type_name}</p>
                       </div>
                     </div>
@@ -317,7 +317,7 @@ export function SmartAllocationForm({ initialData, prefilledData, onSubmit, onCa
                     <div className="flex items-center space-x-3">
                       <User className="h-4 w-4 text-red-600" />
                       <div>
-                        <p className="font-medium">{person.name}</p>
+                        <p className="font-medium">{person.display_name}</p>
                         <p className="text-sm text-muted-foreground">{person.role_type_name}</p>
                       </div>
                     </div>

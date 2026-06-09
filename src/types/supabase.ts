@@ -1,4 +1,4 @@
-export type Json =
+﻿export type Json =
   | string
   | number
   | boolean
@@ -7,35 +7,10 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "12.2.3 (519615d)"
-  }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          operationName?: string
-          query?: string
-          variables?: Json
-          extensions?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
@@ -89,27 +64,116 @@ export type Database = {
       }
       people: {
         Row: {
+          country: string | null
           created_at: string | null
+          display_name: string
+          email: string | null
+          employee_number: string | null
+          employee_position: string | null
+          employee_status: string | null
+          employee_status_enum: string | null
+          external_hr_id: string | null
+          external_hr_uuid: string | null
+          first_name: string
+          has_rehire_offboard: boolean | null
           id: string
-          name: string
+          is_payroll_connected: boolean | null
+          is_peo_employee: boolean | null
+          last_name: string
+          manager_external_id: string | null
+          manager_id: string | null
+          manager_name: string | null
+          preboarding_access: boolean | null
+          preferred_name: string | null
           role_type_id: string
+          start_date: string | null
+          system_access_date: string | null
+          team_ids: string | null
+          terminated: boolean | null
+          terminated_date: string | null
           updated_at: string | null
+          work_location_id: string | null
+          worker_type: string | null
         }
         Insert: {
+          country?: string | null
           created_at?: string | null
+          display_name: string
+          email?: string | null
+          employee_number?: string | null
+          employee_position?: string | null
+          employee_status?: string | null
+          employee_status_enum?: string | null
+          external_hr_id?: string | null
+          external_hr_uuid?: string | null
+          first_name: string
+          has_rehire_offboard?: boolean | null
           id?: string
-          name: string
+          is_payroll_connected?: boolean | null
+          is_peo_employee?: boolean | null
+          last_name: string
+          manager_external_id?: string | null
+          manager_id?: string | null
+          manager_name?: string | null
+          preboarding_access?: boolean | null
+          preferred_name?: string | null
           role_type_id: string
+          start_date?: string | null
+          system_access_date?: string | null
+          team_ids?: string | null
+          terminated?: boolean | null
+          terminated_date?: string | null
           updated_at?: string | null
+          work_location_id?: string | null
+          worker_type?: string | null
         }
         Update: {
+          country?: string | null
           created_at?: string | null
+          display_name?: string
+          email?: string | null
+          employee_number?: string | null
+          employee_position?: string | null
+          employee_status?: string | null
+          employee_status_enum?: string | null
+          external_hr_id?: string | null
+          external_hr_uuid?: string | null
+          first_name?: string
+          has_rehire_offboard?: boolean | null
           id?: string
-          name?: string
+          is_payroll_connected?: boolean | null
+          is_peo_employee?: boolean | null
+          last_name?: string
+          manager_external_id?: string | null
+          manager_id?: string | null
+          manager_name?: string | null
+          preboarding_access?: boolean | null
+          preferred_name?: string | null
           role_type_id?: string
+          start_date?: string | null
+          system_access_date?: string | null
+          team_ids?: string | null
+          terminated?: boolean | null
+          terminated_date?: string | null
           updated_at?: string | null
+          work_location_id?: string | null
+          worker_type?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "people_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "people_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
+            referencedRelation: "people_with_roles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "people_role_type_id_fkey"
             columns: ["role_type_id"]
@@ -252,20 +316,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "fk_parent_requirement"
-            columns: ["parent_requirement_id"]
-            isOneToOne: false
-            referencedRelation: "project_requirements_detailed"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_parent_requirement"
-            columns: ["parent_requirement_id"]
-            isOneToOne: false
-            referencedRelation: "project_resource_requirements"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "fk_source_allocation"
             columns: ["source_allocation_id"]
             isOneToOne: false
@@ -277,6 +327,20 @@ export type Database = {
             columns: ["source_allocation_id"]
             isOneToOne: false
             referencedRelation: "project_allocations_detailed"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_resource_requirements_parent_requirement_id_fkey"
+            columns: ["parent_requirement_id"]
+            isOneToOne: false
+            referencedRelation: "project_requirements_detailed"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_resource_requirements_parent_requirement_id_fkey"
+            columns: ["parent_requirement_id"]
+            isOneToOne: false
+            referencedRelation: "project_resource_requirements"
             referencedColumns: ["id"]
           },
           {
@@ -346,6 +410,54 @@ export type Database = {
         }
         Relationships: []
       }
+      roles: {
+        Row: {
+          id: string
+          name: string
+        }
+        Insert: {
+          id?: string
+          name: string
+        }
+        Update: {
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role_id: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role_id: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_roles_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_roles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       users: {
         Row: {
           created_at: string | null
@@ -365,15 +477,42 @@ export type Database = {
     Views: {
       people_with_roles: {
         Row: {
+          country: string | null
           created_at: string | null
+          display_name: string | null
+          email: string | null
+          employee_number: string | null
+          employee_position: string | null
+          employee_status: string | null
+          external_hr_id: string | null
+          first_name: string | null
           id: string | null
-          name: string | null
+          last_name: string | null
+          manager_id: string | null
+          manager_name: string | null
+          preferred_name: string | null
           role_type_description: string | null
           role_type_id: string | null
           role_type_name: string | null
+          start_date: string | null
+          terminated: boolean | null
           updated_at: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "people_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "people_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
+            referencedRelation: "people_with_roles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "people_role_type_id_fkey"
             columns: ["role_type_id"]
@@ -465,20 +604,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "fk_parent_requirement"
-            columns: ["parent_requirement_id"]
-            isOneToOne: false
-            referencedRelation: "project_requirements_detailed"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_parent_requirement"
-            columns: ["parent_requirement_id"]
-            isOneToOne: false
-            referencedRelation: "project_resource_requirements"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "fk_source_allocation"
             columns: ["source_allocation_id"]
             isOneToOne: false
@@ -490,6 +615,20 @@ export type Database = {
             columns: ["source_allocation_id"]
             isOneToOne: false
             referencedRelation: "project_allocations_detailed"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_resource_requirements_parent_requirement_id_fkey"
+            columns: ["parent_requirement_id"]
+            isOneToOne: false
+            referencedRelation: "project_requirements_detailed"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_resource_requirements_parent_requirement_id_fkey"
+            columns: ["parent_requirement_id"]
+            isOneToOne: false
+            referencedRelation: "project_resource_requirements"
             referencedColumns: ["id"]
           },
           {
@@ -510,10 +649,7 @@ export type Database = {
       }
     }
     Functions: {
-      insert_sample_data: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
+      insert_sample_data: { Args: never; Returns: undefined }
     }
     Enums: {
       auto_generated_type: "leave_coverage" | "partial_gap"
@@ -643,9 +779,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       auto_generated_type: ["leave_coverage", "partial_gap"],

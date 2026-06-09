@@ -42,7 +42,7 @@ export function useResourceAnalytics() {
         
         return {
           person_id: person.id,
-          person_name: person.name,
+          person_name: person.display_name,
           role_type_name: person.role_type_name,
           utilization_percentage: utilization,
           status: utilization > 100 ? 'over-allocated' : 

@@ -168,7 +168,7 @@ export default function PersonDetailPage() {
 
       <div className="space-y-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">{person.name}</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{person.display_name}</h1>
           <div className="flex items-center space-x-4 mt-2">
             <Badge variant="outline">Role: {person.role_type_id}</Badge>
             {!utilizationLoading && (
@@ -213,7 +213,7 @@ export default function PersonDetailPage() {
                 <CardContent className="space-y-4">
                   <div>
                     <label className="text-sm font-medium text-muted-foreground">Name</label>
-                    <p className="text-sm">{person.name}</p>
+                    <p className="text-sm">{person.display_name}</p>
                   </div>
                   <div>
                     <label className="text-sm font-medium text-muted-foreground">Role Type</label>

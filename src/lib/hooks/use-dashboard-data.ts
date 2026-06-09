@@ -163,7 +163,7 @@ export function useDashboardData() {
         })),
         ...people.slice(0, 2).map(person => ({
           type: 'person',
-          message: `${person.name} added to team`,
+          message: `${person.display_name} added to team`,
           timestamp: person.updated_at || person.created_at,
           href: `/dashboard/people/${person.id}`,
         })),
