@@ -1,4 +1,5 @@
 // Re-export all query modules
+export * from "./queries/contracts";
 export * from "./queries/projects";
 export * from "./queries/people";
 export * from "./queries/role-types";

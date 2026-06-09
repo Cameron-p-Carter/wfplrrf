@@ -95,6 +95,28 @@ export const projectAllocationFormSchema = baseProjectAllocationSchema.omit({ pr
   path: ["end_date"],
 });
 
+export const contractSchema = z.object({
+  person_id: z.string().min(1, "Person is required"),
+  contract_type: z.enum(["permanent", "contractor", "fixed_term"], {
+    required_error: "Contract type is required",
+  }),
+  status: z.enum(["active", "expired", "renewed", "cancelled"], {
+    required_error: "Status is required",
+  }),
+  start_date: z.string().min(1, "Start date is required"),
+  end_date: z.string().optional(),
+  length_months: z.number().int().positive().optional().nullable(),
+  notes: z.string().optional(),
+}).refine((data) => {
+  if (data.contract_type !== "permanent" && data.end_date) {
+    return new Date(data.end_date) > new Date(data.start_date);
+  }
+  return true;
+}, {
+  message: "End date must be after start date",
+  path: ["end_date"],
+});
+
 export type RoleTypeFormData = z.infer<typeof roleTypeSchema>;
 export type PersonFormData = z.infer<typeof personSchema>;
 export type ProjectFormData = z.infer<typeof projectSchema>;
@@ -103,3 +125,4 @@ export type ProjectRequirementFormFormData = z.infer<typeof projectRequirementFo
 export type LeavePeriodFormData = z.infer<typeof leavePeriodSchema>;
 export type ProjectAllocationFormData = z.infer<typeof projectAllocationSchema>;
 export type ProjectAllocationFormFormData = z.infer<typeof projectAllocationFormSchema>;
+export type ContractFormData = z.infer<typeof contractSchema>;
