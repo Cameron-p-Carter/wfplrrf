@@ -44,6 +44,7 @@ export interface DayEntry {
 
 export interface Violations {
   underHours: boolean;
+  overHours: boolean;
   weekendWork: string[];
   gapDays: string[];
 }
@@ -56,6 +57,7 @@ export interface EmployeeCompliance {
   violations: Violations;
   violationCount: number;
   isCompliant: boolean;
+  isPartTime: boolean;
   hasApproval: boolean;
   approval: TimesheetApproval | null;
   actions: TimesheetAction[];
@@ -67,7 +69,8 @@ export function computeWeekCompliance(
   entries: TimesheetEntry[],
   holidays: PublicHoliday[],
   actions: TimesheetAction[],
-  approvals: TimesheetApproval[]
+  approvals: TimesheetApproval[],
+  partTimeEmployees: Set<string> = new Set()
 ): EmployeeCompliance[] {
   const weekEnd = new Date(weekStart.getTime() + 6 * 24 * 60 * 60 * 1000);
   const weekStartStr = format(weekStart, 'yyyy-MM-dd');
@@ -129,13 +132,16 @@ export function computeWeekCompliance(
     }
 
     // Expected hours reduced by 8h per public holiday this week
+    const isPartTime = partTimeEmployees.has(employeeName);
     const publicHolidaysThisWeek = weekdays.filter((d) => holidaySet.has(format(d, 'yyyy-MM-dd'))).length;
     const expectedHours = Math.max(0, 40 - publicHolidaysThisWeek * 8);
-    const underHours = weekdayHours < expectedHours;
+    const underHours = !isPartTime && weekdayHours < expectedHours;
+    const overHours = !isPartTime && weekdayHours > 40;
 
-    const violations: Violations = { underHours, weekendWork, gapDays };
+    const violations: Violations = { underHours, overHours, weekendWork, gapDays };
     const violationCount =
       (underHours ? 1 : 0) +
+      (overHours ? 1 : 0) +
       weekendWork.length +
       gapDays.length;
 
@@ -155,6 +161,7 @@ export function computeWeekCompliance(
       violations,
       violationCount,
       isCompliant: violationCount === 0 || !!approval,
+      isPartTime,
       hasApproval: !!approval,
       approval,
       actions: empActions,
@@ -199,7 +206,8 @@ export function computeMonthCompliance(
   entries: TimesheetEntry[],
   holidays: PublicHoliday[],
   actions: TimesheetAction[],
-  approvals: TimesheetApproval[]
+  approvals: TimesheetApproval[],
+  partTimeEmployees: Set<string> = new Set()
 ): EmployeeMonthCompliance[] {
   const monthEnd = endOfMonth(monthStart);
 
@@ -215,7 +223,7 @@ export function computeMonthCompliance(
 
   // Compute per-week compliance for each overlapping week
   const allWeekCompliances = weekStarts.map((w) =>
-    computeWeekCompliance(w, entries, holidays, actions, approvals)
+    computeWeekCompliance(w, entries, holidays, actions, approvals, partTimeEmployees)
   );
 
   // Union of all employees who appear in any week

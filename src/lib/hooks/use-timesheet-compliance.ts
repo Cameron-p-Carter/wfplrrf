@@ -8,6 +8,8 @@ import {
   getPublicHolidays,
   getTimesheetActionsForWeek,
   getTimesheetApprovalsForWeek,
+  getTimesheetEmployeeSettings,
+  setEmployeePartTime,
   logTimesheetAction,
   upsertTimesheetApproval,
 } from '@/lib/supabase/queries/timesheets';
@@ -26,14 +28,16 @@ export function useTimesheetCompliance(weekStart: Date) {
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
-      const [entries, holidays, actions, approvals] = await Promise.all([
+      const [entries, holidays, actions, approvals, settings] = await Promise.all([
         getTimesheetEntriesForWeek(weekStartStr, weekEndStr),
         getPublicHolidays(),
         getTimesheetActionsForWeek(weekStartStr),
         getTimesheetApprovalsForWeek(weekStartStr),
+        getTimesheetEmployeeSettings(),
       ]);
+      const partTimeSet = new Set(settings.filter((s) => s.is_part_time).map((s) => s.employee_name));
       const computedWeekStart = new Date(weekStartStr + 'T00:00:00');
-      const results = computeWeekCompliance(computedWeekStart, entries, holidays, actions, approvals);
+      const results = computeWeekCompliance(computedWeekStart, entries, holidays, actions, approvals, partTimeSet);
       setCompliance(results);
     } finally {
       setLoading(false);
@@ -85,6 +89,18 @@ export function useTimesheetCompliance(weekStart: Date) {
     [weekStartStr, refresh]
   );
 
+  const togglePartTime = useCallback(
+    async (employeeName: string, isPartTime: boolean) => {
+      try {
+        await setEmployeePartTime(employeeName, isPartTime);
+        await refresh();
+      } catch {
+        toast.error('Failed to update part-time setting');
+      }
+    },
+    [refresh]
+  );
+
   const compliantCount = compliance.filter((e) => e.isCompliant).length;
   const issueCount = compliance.filter((e) => !e.isCompliant).length;
 
@@ -95,6 +111,7 @@ export function useTimesheetCompliance(weekStart: Date) {
     issueCount,
     logAction,
     approveException,
+    togglePartTime,
     refresh,
   };
 }

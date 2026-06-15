@@ -353,6 +353,35 @@ export async function getAllEmployeeApprovals(employeeName: string): Promise<Tim
   }
 }
 
+export interface TimesheetEmployeeSettings {
+  employee_name: string;
+  is_part_time: boolean;
+  updated_at: string;
+}
+
+export async function getTimesheetEmployeeSettings(): Promise<TimesheetEmployeeSettings[]> {
+  try {
+    const { data, error } = await supabase
+      .from('timesheet_employee_settings')
+      .select('*');
+    if (error) throw error;
+    return data ?? [];
+  } catch (error) {
+    handleDatabaseError(error, 'fetch timesheet employee settings');
+  }
+}
+
+export async function setEmployeePartTime(employeeName: string, isPartTime: boolean): Promise<void> {
+  try {
+    const { error } = await supabase
+      .from('timesheet_employee_settings')
+      .upsert({ employee_name: employeeName, is_part_time: isPartTime, updated_at: new Date().toISOString() }, { onConflict: 'employee_name' });
+    if (error) throw error;
+  } catch (error) {
+    handleDatabaseError(error, 'set employee part time');
+  }
+}
+
 export async function deleteAllTimesheetData(): Promise<void> {
   try {
     // Delete entries first (upload_id FK is SET NULL, so order matters less, but entries is the main data)

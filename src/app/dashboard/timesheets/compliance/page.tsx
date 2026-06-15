@@ -58,6 +58,14 @@ function ViolationBadges({ v }: { v: EmployeeCompliance["violations"] }) {
       </Badge>
     );
   }
+  if (v.overHours) {
+    badges.push(
+      <Badge key="oh" variant="outline" className="bg-orange-50 text-orange-700 border-orange-200 font-normal text-xs">
+        <AlertTriangle className="h-3 w-3 mr-1" />
+        Over 40h
+      </Badge>
+    );
+  }
   if (v.gapDays.length > 0) {
     badges.push(
       <Badge key="gap" variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 font-normal text-xs">
@@ -94,6 +102,7 @@ function ApproveDialog({ open, employeeName, violations, onConfirm, onClose }: A
 
   const violationTypes = [
     violations.underHours && "under_hours",
+    violations.overHours && "over_hours",
     violations.gapDays.length > 0 && "gap_days",
     violations.weekendWork.length > 0 && "weekend_work",
   ].filter(Boolean) as string[];
@@ -167,6 +176,9 @@ function buildSlackMessage(
   const bullets: string[] = [];
   if (violations.underHours) {
     bullets.push(`• Under 40h — logged ${weekdayHours.toFixed(1)}h`);
+  }
+  if (violations.overHours) {
+    bullets.push(`• Over 40h — logged ${weekdayHours.toFixed(1)}h`);
   }
   for (const d of violations.gapDays) {
     bullets.push(`• Missing entry: ${formatDayShort(d)}`);
@@ -265,7 +277,7 @@ export default function CompliancePage() {
     }
   };
 
-  const { compliance, loading, compliantCount, issueCount, logAction, approveException } =
+  const { compliance, loading, compliantCount, issueCount, logAction, approveException, togglePartTime } =
     useTimesheetCompliance(weekStart);
 
   const filtered = useMemo(() => {
@@ -449,6 +461,7 @@ export default function CompliancePage() {
                   sendingSlack={sendingEmployee === emp.employeeName}
                   onSlack={() => openSlackPreview(emp)}
                   onCall={() => logAction(emp.employeeName, "call")}
+                  onTogglePartTime={() => togglePartTime(emp.employeeName, !emp.isPartTime)}
                   onApprove={() => setApprovingEmployee(emp)}
                   onNameClick={() =>
                     router.push(
@@ -481,6 +494,7 @@ export default function CompliancePage() {
           onConfirm={(reason, approvedBy) => {
             const types = [
               approvingEmployee.violations.underHours && "under_hours",
+              approvingEmployee.violations.overHours && "over_hours",
               approvingEmployee.violations.gapDays.length > 0 && "gap_days",
               approvingEmployee.violations.weekendWork.length > 0 && "weekend_work",
             ].filter(Boolean) as string[];
@@ -499,12 +513,17 @@ interface EmployeeRowProps {
   onSlack: () => void;
   onCall: () => void;
   onApprove: () => void;
+  onTogglePartTime: () => void;
   onNameClick: () => void;
 }
 
-function EmployeeRow({ emp, sendingSlack, onSlack, onCall, onApprove, onNameClick }: EmployeeRowProps) {
+function EmployeeRow({ emp, sendingSlack, onSlack, onCall, onApprove, onTogglePartTime, onNameClick }: EmployeeRowProps) {
   const hoursColor =
-    emp.weekdayHours >= 40
+    emp.isPartTime
+      ? "text-muted-foreground"
+      : emp.weekdayHours > 40
+      ? "text-orange-600"
+      : emp.weekdayHours >= 40
       ? "text-emerald-600"
       : emp.weekdayHours >= 30
       ? "text-amber-600"
@@ -552,6 +571,17 @@ function EmployeeRow({ emp, sendingSlack, onSlack, onCall, onApprove, onNameClic
             Approved
           </Badge>
         )}
+        <button
+          onClick={onTogglePartTime}
+          title={emp.isPartTime ? "Part-time (click to set full-time)" : "Full-time (click to set part-time)"}
+          className={`flex-shrink-0 rounded px-1.5 py-0.5 text-xs font-medium border transition-colors ${
+            emp.isPartTime
+              ? "bg-violet-50 text-violet-700 border-violet-200 hover:bg-violet-100"
+              : "text-muted-foreground/40 border-transparent hover:border-muted-foreground/20 hover:text-muted-foreground"
+          }`}
+        >
+          PT
+        </button>
       </div>
 
       {/* Hours */}

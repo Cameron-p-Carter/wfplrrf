@@ -46,8 +46,8 @@ Deno.serve(async (req) => {
 
     const weekLabel = `${weekStart.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })} – ${weekEnd.toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })}`;
 
-    // Fetch entries, holidays, and existing approvals in parallel
-    const [entriesRes, holidaysRes, approvalsRes] = await Promise.all([
+    // Fetch entries, holidays, approvals, and employee settings in parallel
+    const [entriesRes, holidaysRes, approvalsRes, settingsRes] = await Promise.all([
       supabase
         .from('timesheet_entries')
         .select('employee_name, entry_date, units, cost_centre')
@@ -58,6 +58,9 @@ Deno.serve(async (req) => {
         .from('timesheet_approvals')
         .select('employee_name')
         .eq('week_start', weekStartStr),
+      supabase
+        .from('timesheet_employee_settings')
+        .select('employee_name, is_part_time'),
     ]);
 
     if (entriesRes.error) throw new Error(entriesRes.error.message);
@@ -67,6 +70,11 @@ Deno.serve(async (req) => {
     const entries = entriesRes.data ?? [];
     const holidaySet = new Set((holidaysRes.data ?? []).map((h: { holiday_date: string }) => h.holiday_date));
     const approvedSet = new Set((approvalsRes.data ?? []).map((a: { employee_name: string }) => a.employee_name));
+    const partTimeSet = new Set(
+      ((settingsRes.data ?? []) as { employee_name: string; is_part_time: boolean }[])
+        .filter((s) => s.is_part_time)
+        .map((s) => s.employee_name)
+    );
 
     // Weekday date strings Mon–Fri
     const weekdays: string[] = [];
@@ -101,10 +109,14 @@ Deno.serve(async (req) => {
       if (approvedSet.has(name)) continue;
 
       const weekdayHours = weekdays.reduce((s, d) => s + (dayMap[d]?.hours ?? 0), 0);
+      const isPartTime = partTimeSet.has(name);
       const bullets: string[] = [];
 
-      if (weekdayHours < expectedHours) {
+      if (!isPartTime && weekdayHours < expectedHours) {
         bullets.push(`• Under ${expectedHours}h — logged ${weekdayHours.toFixed(1)}h`);
+      }
+      if (!isPartTime && weekdayHours > 40) {
+        bullets.push(`• Over 40h — logged ${weekdayHours.toFixed(1)}h`);
       }
 
       for (const d of weekdays) {
