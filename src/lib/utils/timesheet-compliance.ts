@@ -53,6 +53,8 @@ export interface EmployeeCompliance {
   employeeName: string;
   totalHours: number;
   weekdayHours: number;
+  expectedHours: number;
+  publicHolidaysThisWeek: number;
   dayEntries: Record<string, DayEntry>;
   violations: Violations;
   violationCount: number;
@@ -157,6 +159,8 @@ export function computeWeekCompliance(
       employeeName,
       totalHours,
       weekdayHours,
+      expectedHours,
+      publicHolidaysThisWeek,
       dayEntries,
       violations,
       violationCount,

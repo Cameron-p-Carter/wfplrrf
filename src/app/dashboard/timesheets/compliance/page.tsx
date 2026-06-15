@@ -47,14 +47,15 @@ const ACTION_LABELS: Record<string, { label: string; color: string }> = {
   email: { label: "Email sent", color: "bg-purple-100 text-purple-700 border-purple-200" },
 };
 
-function ViolationBadges({ v }: { v: EmployeeCompliance["violations"] }) {
+function ViolationBadges({ emp }: { emp: EmployeeCompliance }) {
+  const { violations: v, publicHolidaysThisWeek, expectedHours, isPartTime } = emp;
   const badges: React.ReactNode[] = [];
 
   if (v.underHours) {
     badges.push(
       <Badge key="uh" variant="outline" className="bg-red-50 text-red-700 border-red-200 font-normal text-xs">
         <AlertTriangle className="h-3 w-3 mr-1" />
-        Under 40h
+        Under {expectedHours}h
       </Badge>
     );
   }
@@ -81,10 +82,19 @@ function ViolationBadges({ v }: { v: EmployeeCompliance["violations"] }) {
     );
   }
 
-  return badges.length > 0 ? (
-    <div className="flex flex-wrap gap-1">{badges}</div>
-  ) : (
-    <span className="text-xs text-emerald-600 font-medium">All good</span>
+  if (badges.length > 0) {
+    return <div className="flex flex-wrap gap-1">{badges}</div>;
+  }
+
+  return (
+    <div className="flex flex-wrap gap-1">
+      <span className="text-xs text-emerald-600 font-medium">All good</span>
+      {!isPartTime && publicHolidaysThisWeek > 0 && (
+        <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 font-normal text-xs">
+          {publicHolidaysThisWeek} PH · {expectedHours}h required
+        </Badge>
+      )}
+    </div>
   );
 }
 
@@ -171,11 +181,14 @@ function buildSlackMessage(
   employeeName: string,
   weekLabel: string,
   violations: Violations,
-  weekdayHours: number
+  weekdayHours: number,
+  expectedHours: number,
+  publicHolidaysThisWeek: number
 ): string {
   const bullets: string[] = [];
   if (violations.underHours) {
-    bullets.push(`• Under 40h — logged ${weekdayHours.toFixed(1)}h`);
+    const phNote = publicHolidaysThisWeek > 0 ? ` (${publicHolidaysThisWeek} public holiday — ${expectedHours}h required this week)` : '';
+    bullets.push(`• Under ${expectedHours}h — logged ${weekdayHours.toFixed(1)}h${phNote}`);
   }
   if (violations.overHours) {
     bullets.push(`• Over 40h — logged ${weekdayHours.toFixed(1)}h`);
@@ -250,7 +263,9 @@ export default function CompliancePage() {
       emp.employeeName,
       getWeekLabel(weekStart),
       emp.violations,
-      emp.weekdayHours
+      emp.weekdayHours,
+      emp.expectedHours,
+      emp.publicHolidaysThisWeek
     );
     setSlackPreview({ emp, message });
   };
@@ -591,7 +606,7 @@ function EmployeeRow({ emp, sendingSlack, onSlack, onCall, onApprove, onTogglePa
 
       {/* Violations */}
       <div>
-        <ViolationBadges v={emp.violations} />
+        <ViolationBadges emp={emp} />
       </div>
 
       {/* Last action */}
