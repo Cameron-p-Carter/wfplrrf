@@ -119,9 +119,11 @@ Deno.serve(async (req) => {
         bullets.push(`• Over 40h — logged ${weekdayHours.toFixed(1)}h`);
       }
 
-      for (const d of weekdays) {
-        if (!dayMap[d] && !holidaySet.has(d)) {
-          bullets.push(`• Missing entry: ${fmtAU(d)}`);
+      if (!isPartTime) {
+        for (const d of weekdays) {
+          if (!dayMap[d] && !holidaySet.has(d)) {
+            bullets.push(`• Missing entry: ${fmtAU(d)}`);
+          }
         }
       }
 

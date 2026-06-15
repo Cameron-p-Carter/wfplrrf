@@ -139,6 +139,7 @@ export function computeWeekCompliance(
     const expectedHours = Math.max(0, 40 - publicHolidaysThisWeek * 8);
     const underHours = !isPartTime && weekdayHours < expectedHours;
     const overHours = !isPartTime && weekdayHours > 40;
+    if (isPartTime) gapDays.length = 0;
 
     const violations: Violations = { underHours, overHours, weekendWork, gapDays };
     const violationCount =
