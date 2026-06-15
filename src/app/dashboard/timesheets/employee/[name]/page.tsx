@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useState, useMemo } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import {
   startOfWeek,
   endOfWeek,
@@ -82,7 +82,7 @@ function getDayStatus(
   if (isWeekend) return total > 0 ? "weekend_work" : "weekend_empty";
 
   if (isHoliday) {
-    if (total === 0) return "gap";
+    if (total === 0) return "holiday_ok"; // no entry on PH is fine
     return entries.some((e) => isLeaveCC(e.cost_centre)) ? "holiday_ok" : "holiday_wrong";
   }
 
@@ -408,13 +408,20 @@ type ViewMode = "week" | "month";
 export default function EmployeeTimesheetPage() {
   const router = useRouter();
   const params = useParams<{ name: string }>();
+  const searchParams = useSearchParams();
   const employeeName = decodeURIComponent(params.name);
 
   const [view, setView] = useState<ViewMode>("week");
-  const [weekStart, setWeekStart] = useState(() =>
-    startOfWeek(new Date(), { weekStartsOn: 1 })
-  );
-  const [currentMonth, setCurrentMonth] = useState(() => startOfMonth(new Date()));
+  const [weekStart, setWeekStart] = useState(() => {
+    const weekParam = searchParams.get("week");
+    if (weekParam) return startOfWeek(new Date(weekParam + "T00:00:00"), { weekStartsOn: 1 });
+    return startOfWeek(new Date(), { weekStartsOn: 1 });
+  });
+  const [currentMonth, setCurrentMonth] = useState(() => {
+    const weekParam = searchParams.get("week");
+    if (weekParam) return startOfMonth(new Date(weekParam + "T00:00:00"));
+    return startOfMonth(new Date());
+  });
   const [approvingWeek, setApprovingWeek] = useState<string | null>(null);
 
   // Compute the date range to fetch

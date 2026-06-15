@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { startOfWeek, addWeeks, subWeeks } from "date-fns";
+import { startOfWeek, addWeeks, subWeeks, format } from "date-fns";
 import {
   ChevronLeft,
   ChevronRight,
@@ -334,7 +334,9 @@ export default function CompliancePage() {
                   onCall={() => logAction(emp.employeeName, "call")}
                   onApprove={() => setApprovingEmployee(emp)}
                   onNameClick={() =>
-                    router.push(`/dashboard/timesheets/employee/${encodeURIComponent(emp.employeeName)}`)
+                    router.push(
+                      `/dashboard/timesheets/employee/${encodeURIComponent(emp.employeeName)}?week=${format(weekStart, "yyyy-MM-dd")}`
+                    )
                   }
                 />
               ))}

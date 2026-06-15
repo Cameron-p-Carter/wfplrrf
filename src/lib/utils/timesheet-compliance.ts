@@ -137,12 +137,16 @@ export function computeWeekCompliance(
       }
     }
 
+    // Gap days: weekdays with no entries, excluding public holidays (PH = no entry required)
     for (const day of weekdays) {
       const ds = format(day, 'yyyy-MM-dd');
-      if (!dayEntries[ds]) gapDays.push(ds);
+      if (!dayEntries[ds] && !holidaySet.has(ds)) gapDays.push(ds);
     }
 
-    const underHours = weekdayHours < 40;
+    // Expected hours reduced by 8h per public holiday this week
+    const publicHolidaysThisWeek = weekdays.filter((d) => holidaySet.has(format(d, 'yyyy-MM-dd'))).length;
+    const expectedHours = Math.max(0, 40 - publicHolidaysThisWeek * 8);
+    const underHours = weekdayHours < expectedHours;
 
     const violations: Violations = { underHours, weekendWork, publicHolidayWork, gapDays };
     const violationCount =
