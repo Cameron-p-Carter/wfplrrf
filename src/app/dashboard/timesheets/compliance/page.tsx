@@ -1,8 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { useState, useMemo } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useMemo, useCallback } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { startOfWeek, addWeeks, subWeeks, format } from "date-fns";
 import {
@@ -249,9 +249,17 @@ function SlackPreviewDialog({ open, employeeName, message, sending, onConfirm, o
 
 export default function CompliancePage() {
   const router = useRouter();
-  const [weekStart, setWeekStart] = useState(() =>
-    startOfWeek(new Date(), { weekStartsOn: 1 })
-  );
+  const searchParams = useSearchParams();
+
+  const [weekStart, setWeekStartState] = useState(() => {
+    const w = searchParams.get("week");
+    return w ? new Date(w + "T00:00:00") : startOfWeek(new Date(), { weekStartsOn: 1 });
+  });
+
+  const setWeekStart = useCallback((date: Date) => {
+    setWeekStartState(date);
+    router.replace(`/dashboard/timesheets/compliance?week=${format(date, "yyyy-MM-dd")}`);
+  }, [router]);
   const [filter, setFilter] = useState<FilterTab>("all");
   const [search, setSearch] = useState("");
   const [approvingEmployee, setApprovingEmployee] = useState<EmployeeCompliance | null>(null);
