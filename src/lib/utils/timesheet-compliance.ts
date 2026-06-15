@@ -45,7 +45,6 @@ export interface DayEntry {
 export interface Violations {
   underHours: boolean;
   weekendWork: string[];
-  publicHolidayWork: string[];
   gapDays: string[];
 }
 
@@ -61,13 +60,6 @@ export interface EmployeeCompliance {
   approval: TimesheetApproval | null;
   actions: TimesheetAction[];
   latestAction: TimesheetAction | null;
-}
-
-const LEAVE_KEYWORDS = ['leave', 'holiday', 'sick', 'rdo', 'flex day', 'time off'];
-
-function isLeaveOrHolidayCentre(costCentre: string): boolean {
-  const lower = costCentre.toLowerCase();
-  return LEAVE_KEYWORDS.some((kw) => lower.includes(kw));
 }
 
 export function computeWeekCompliance(
@@ -121,19 +113,12 @@ export function computeWeekCompliance(
 
     // Violations
     const weekendWork: string[] = [];
-    const publicHolidayWork: string[] = [];
     const gapDays: string[] = [];
 
     for (const entry of empEntries) {
       const dow = getDay(new Date(entry.entry_date + 'T00:00:00'));
       if (dow === 0 || dow === 6) {
         if (!weekendWork.includes(entry.entry_date)) weekendWork.push(entry.entry_date);
-      }
-    }
-
-    for (const entry of empEntries) {
-      if (holidaySet.has(entry.entry_date) && !isLeaveOrHolidayCentre(entry.cost_centre)) {
-        if (!publicHolidayWork.includes(entry.entry_date)) publicHolidayWork.push(entry.entry_date);
       }
     }
 
@@ -148,11 +133,10 @@ export function computeWeekCompliance(
     const expectedHours = Math.max(0, 40 - publicHolidaysThisWeek * 8);
     const underHours = weekdayHours < expectedHours;
 
-    const violations: Violations = { underHours, weekendWork, publicHolidayWork, gapDays };
+    const violations: Violations = { underHours, weekendWork, gapDays };
     const violationCount =
       (underHours ? 1 : 0) +
       weekendWork.length +
-      publicHolidayWork.length +
       gapDays.length;
 
     const approval = approvals.find(

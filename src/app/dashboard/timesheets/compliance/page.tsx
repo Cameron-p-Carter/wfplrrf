@@ -72,13 +72,6 @@ function ViolationBadges({ v }: { v: EmployeeCompliance["violations"] }) {
       </Badge>
     );
   }
-  if (v.publicHolidayWork.length > 0) {
-    badges.push(
-      <Badge key="ph" variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 font-normal text-xs">
-        PH wrong CC
-      </Badge>
-    );
-  }
 
   return badges.length > 0 ? (
     <div className="flex flex-wrap gap-1">{badges}</div>
@@ -103,7 +96,6 @@ function ApproveDialog({ open, employeeName, violations, onConfirm, onClose }: A
     violations.underHours && "under_hours",
     violations.gapDays.length > 0 && "gap_days",
     violations.weekendWork.length > 0 && "weekend_work",
-    violations.publicHolidayWork.length > 0 && "ph_work",
   ].filter(Boolean) as string[];
 
   const handleConfirm = () => {
@@ -181,9 +173,6 @@ function buildSlackMessage(
   }
   for (const d of violations.weekendWork) {
     bullets.push(`• Weekend work recorded: ${formatDayShort(d)}`);
-  }
-  for (const d of violations.publicHolidayWork) {
-    bullets.push(`• Public holiday — wrong cost centre: ${formatDayShort(d)}`);
   }
   const firstName = employeeName.split(" ")[0];
   return [
@@ -494,7 +483,6 @@ export default function CompliancePage() {
               approvingEmployee.violations.underHours && "under_hours",
               approvingEmployee.violations.gapDays.length > 0 && "gap_days",
               approvingEmployee.violations.weekendWork.length > 0 && "weekend_work",
-              approvingEmployee.violations.publicHolidayWork.length > 0 && "ph_work",
             ].filter(Boolean) as string[];
             approveException(approvingEmployee.employeeName, types, reason, approvedBy);
           }}

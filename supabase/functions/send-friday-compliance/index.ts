@@ -1,10 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-const LEAVE_KEYWORDS = ['leave', 'holiday', 'sick', 'rdo', 'flex day', 'time off'];
-
-function isLeaveCC(cc: string): boolean {
-  return LEAVE_KEYWORDS.some((kw) => cc.toLowerCase().includes(kw));
-}
 
 function getMonday(date: Date): Date {
   const d = new Date(date);
@@ -118,13 +113,10 @@ Deno.serve(async (req) => {
         }
       }
 
-      for (const [date, day] of Object.entries(dayMap)) {
+      for (const [date] of Object.entries(dayMap)) {
         const dow = new Date(date + 'T00:00:00').getDay();
         if (dow === 0 || dow === 6) {
           bullets.push(`• Weekend work recorded: ${fmtAU(date)}`);
-        }
-        if (holidaySet.has(date) && !day.costCentres.every(isLeaveCC)) {
-          bullets.push(`• Public holiday — wrong cost centre: ${fmtAU(date)}`);
         }
       }
 
