@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Computer, LayoutDashboard, Users, Briefcase, UserCheck, Calendar, BarChart3, FileText } from "lucide-react";
+import { Computer, LayoutDashboard, Users, Briefcase, UserCheck, Calendar, BarChart3, FileText, ClipboardList } from "lucide-react";
 
 import {
   Sidebar,
@@ -43,6 +43,11 @@ const items: { title: string; url: string; icon: React.ComponentType<{ className
     title: "Contracts",
     url: "/dashboard/contracts",
     icon: FileText,
+  },
+  {
+    title: "Timesheets",
+    url: "/dashboard/timesheets",
+    icon: ClipboardList,
   },
   {
     title: "Analytics",
