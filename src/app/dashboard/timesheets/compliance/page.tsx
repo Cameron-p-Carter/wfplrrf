@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { startOfWeek, addWeeks, subWeeks, format } from "date-fns";
@@ -247,7 +247,7 @@ function SlackPreviewDialog({ open, employeeName, message, sending, onConfirm, o
   );
 }
 
-export default function CompliancePage() {
+function CompliancePageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -668,5 +668,13 @@ function EmployeeRow({ emp, sendingSlack, onSlack, onCall, onApprove, onTogglePa
         )}
       </div>
     </div>
+  );
+}
+
+export default function CompliancePage() {
+  return (
+    <Suspense>
+      <CompliancePageInner />
+    </Suspense>
   );
 }
