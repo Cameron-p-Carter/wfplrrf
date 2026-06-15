@@ -133,15 +133,21 @@ Deno.serve(async (req) => {
       }
     }
 
-    if (issues.length === 0) {
+    // If a specific employee was requested, filter to just them
+    const targetEmployee: string | undefined = body.employeeName;
+    const filteredIssues = targetEmployee
+      ? issues.filter((i) => i.name === targetEmployee)
+      : issues;
+
+    if (filteredIssues.length === 0) {
       return new Response(
-        JSON.stringify({ sent: 0, skipped: 0, failed: [], week: weekLabel, message: 'All compliant' }),
+        JSON.stringify({ sent: 0, skipped: 0, failed: [], week: weekLabel, message: targetEmployee ? 'No issues found for employee' : 'All compliant' }),
         { headers: { 'Content-Type': 'application/json' } }
       );
     }
 
     // Fetch employee emails from people table
-    const names = issues.map((i) => i.name);
+    const names = filteredIssues.map((i) => i.name);
     const { data: people, error: peopleError } = await supabase
       .from('people')
       .select('display_name, email')
@@ -186,7 +192,7 @@ Deno.serve(async (req) => {
     let skipped = 0;
     const failed: string[] = [];
 
-    for (const emp of issues) {
+    for (const emp of filteredIssues) {
       const email = emailByName.get(emp.name);
       if (!email) {
         skipped++;
@@ -229,7 +235,7 @@ Deno.serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ sent, skipped, failed, total: issues.length, week: weekLabel }),
+      JSON.stringify({ sent, skipped, failed, total: filteredIssues.length, week: weekLabel }),
       { headers: { 'Content-Type': 'application/json' } }
     );
   } catch (err) {

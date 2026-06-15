@@ -174,30 +174,26 @@ export default function CompliancePage() {
   const [filter, setFilter] = useState<FilterTab>("all");
   const [search, setSearch] = useState("");
   const [approvingEmployee, setApprovingEmployee] = useState<EmployeeCompliance | null>(null);
-  const [sending, setSending] = useState(false);
+  const [sendingEmployee, setSendingEmployee] = useState<string | null>(null);
 
-  const handleSendSlacks = async () => {
-    setSending(true);
+  const handleSendSlack = async (employeeName: string) => {
+    setSendingEmployee(employeeName);
     try {
       const res = await fetch("/api/timesheets/send-slack", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ week: format(weekStart, "yyyy-MM-dd") }),
+        body: JSON.stringify({ week: format(weekStart, "yyyy-MM-dd"), employeeName }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Unknown error");
-      if (data.sent === 0 && data.total === 0) {
-        toast.success("All employees compliant — no Slacks needed");
-      } else {
-        toast.success(`Sent ${data.sent} of ${data.total} Slack messages for ${data.week}`);
-        if (data.failed?.length > 0) {
-          toast.warning(`${data.failed.length} not sent: ${data.failed.join(", ")}`);
-        }
+      toast.success(`Slack sent to ${employeeName.split(" ")[0]}`);
+      if (data.failed?.length > 0) {
+        toast.warning(data.failed[0]);
       }
     } catch (err) {
-      toast.error(`Failed to send Slacks: ${err instanceof Error ? err.message : String(err)}`);
+      toast.error(`Failed: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
-      setSending(false);
+      setSendingEmployee(null);
     }
   };
 
@@ -227,24 +223,6 @@ export default function CompliancePage() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          {/* Send Slacks button */}
-          {issueCount > 0 && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-1.5 text-blue-600 border-blue-200 hover:bg-blue-50 hover:text-blue-700"
-              onClick={handleSendSlacks}
-              disabled={sending}
-            >
-              {sending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Send className="h-4 w-4" />
-              )}
-              {sending ? "Sending…" : `Slack ${issueCount} employee${issueCount !== 1 ? "s" : ""}`}
-            </Button>
-          )}
-
           {/* View switcher */}
           <div className="flex items-center rounded-md border divide-x overflow-hidden">
             <Button
@@ -400,7 +378,8 @@ export default function CompliancePage() {
                 <EmployeeRow
                   key={emp.employeeName}
                   emp={emp}
-                  onSlack={() => logAction(emp.employeeName, "slack")}
+                  sendingSlack={sendingEmployee === emp.employeeName}
+                  onSlack={() => handleSendSlack(emp.employeeName)}
                   onCall={() => logAction(emp.employeeName, "call")}
                   onApprove={() => setApprovingEmployee(emp)}
                   onNameClick={() =>
@@ -438,13 +417,14 @@ export default function CompliancePage() {
 
 interface EmployeeRowProps {
   emp: EmployeeCompliance;
+  sendingSlack: boolean;
   onSlack: () => void;
   onCall: () => void;
   onApprove: () => void;
   onNameClick: () => void;
 }
 
-function EmployeeRow({ emp, onSlack, onCall, onApprove, onNameClick }: EmployeeRowProps) {
+function EmployeeRow({ emp, sendingSlack, onSlack, onCall, onApprove, onNameClick }: EmployeeRowProps) {
   const hoursColor =
     emp.weekdayHours >= 40
       ? "text-emerald-600"
@@ -518,9 +498,14 @@ function EmployeeRow({ emp, onSlack, onCall, onApprove, onNameClick }: EmployeeR
               size="sm"
               className="h-8 gap-1.5 text-blue-600 border-blue-200 hover:bg-blue-50 hover:text-blue-700"
               onClick={onSlack}
-              title="Log Slack message sent"
+              disabled={sendingSlack}
+              title="Send Slack DM"
             >
-              <MessageSquare className="h-3.5 w-3.5" />
+              {sendingSlack ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Send className="h-3.5 w-3.5" />
+              )}
               Slack
             </Button>
             <Button
