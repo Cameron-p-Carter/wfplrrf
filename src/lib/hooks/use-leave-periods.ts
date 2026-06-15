@@ -19,7 +19,7 @@ import type { Tables, TablesInsert, TablesUpdate } from "@/types/supabase";
 type LeaveWithPerson = Tables<"leave_periods"> & {
   people: {
     id: string;
-    name: string;
+    display_name: string;
     role_types: { name: string } | null;
   };
 };

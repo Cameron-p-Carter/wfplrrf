@@ -19,7 +19,7 @@ import type { Tables } from "@/types/supabase";
 type LeaveWithPerson = Tables<"leave_periods"> & {
   people: {
     id: string;
-    name: string;
+    display_name: string;
     role_types: { name: string } | null;
   };
 };
@@ -35,7 +35,7 @@ export default function LeavePage() {
 
   const allLeave = leavePeriods as LeaveWithPerson[];
   const filteredLeave = allLeave.filter(leave =>
-    leave.people?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    leave.people?.display_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     leave.status.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -182,7 +182,7 @@ export default function LeavePage() {
                     ) : (
                       filteredLeave.map((leave) => (
                         <TableRow key={leave.id}>
-                          <TableCell className="font-medium">{leave.people?.name}</TableCell>
+                          <TableCell className="font-medium">{leave.people?.display_name}</TableCell>
                           <TableCell>{formatDate(leave.start_date)}</TableCell>
                           <TableCell>{formatDate(leave.end_date)}</TableCell>
                           <TableCell>{getStatusBadge(leave.status)}</TableCell>
@@ -258,7 +258,7 @@ export default function LeavePage() {
                     ) : (
                       pendingLeave.map((leave) => (
                         <TableRow key={leave.id}>
-                          <TableCell className="font-medium">{leave.people?.name}</TableCell>
+                          <TableCell className="font-medium">{leave.people?.display_name}</TableCell>
                           <TableCell>{formatDate(leave.start_date)}</TableCell>
                           <TableCell>{formatDate(leave.end_date)}</TableCell>
                           <TableCell className="max-w-[200px] truncate">
@@ -270,17 +270,19 @@ export default function LeavePage() {
                                 variant="outline"
                                 size="sm"
                                 onClick={() => handleApprove(leave.id)}
-                                className="text-green-600 hover:text-green-700"
+                                className="text-green-600 hover:bg-green-50 hover:text-green-700 border-green-200"
                               >
-                                <Check className="h-4 w-4" />
+                                <Check className="h-4 w-4 mr-1" />
+                                Approve
                               </Button>
                               <Button
                                 variant="outline"
                                 size="sm"
                                 onClick={() => handleReject(leave.id)}
-                                className="text-red-600 hover:text-red-700"
+                                className="text-red-600 hover:bg-red-50 hover:text-red-700 border-red-200"
                               >
-                                <X className="h-4 w-4" />
+                                <X className="h-4 w-4 mr-1" />
+                                Reject
                               </Button>
                             </div>
                           </TableCell>

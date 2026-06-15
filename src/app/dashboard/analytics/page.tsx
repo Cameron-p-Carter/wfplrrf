@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { AlertTriangle, Users, TrendingUp, Activity } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -7,9 +8,12 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
 import { useResourceAnalytics } from "@/lib/hooks/use-resource-analytics";
+import { TimePeriodSelector } from "@/components/ui/time-period-selector";
+import { useTimePeriod } from "@/lib/providers/time-period-provider";
 
 export default function AnalyticsPage() {
   const { overAllocatedPeople, peopleUtilization, utilizationStats, loading } = useResourceAnalytics();
+  const { range } = useTimePeriod();
 
   const getUtilizationBadge = (utilization: number) => {
     if (utilization > 100) {
@@ -40,11 +44,14 @@ export default function AnalyticsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Resource Analytics</h1>
-        <p className="text-muted-foreground">
-          Monitor resource utilization and identify allocation issues
-        </p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Resource Analytics</h1>
+          <p className="text-muted-foreground">
+            Monitor resource utilization for {range.description.toLowerCase()}
+          </p>
+        </div>
+        <TimePeriodSelector />
       </div>
 
       {/* Overview Cards */}
@@ -74,7 +81,7 @@ export default function AnalyticsPage() {
               {loading ? <Skeleton className="h-8 w-16" /> : `${utilizationStats.averageUtilization}%`}
             </div>
             <p className="text-xs text-muted-foreground">
-              Current month average
+              {range.description}
             </p>
           </CardContent>
         </Card>
@@ -214,7 +221,7 @@ export default function AnalyticsPage() {
         <CardHeader>
           <CardTitle>People Utilization</CardTitle>
           <CardDescription>
-            Current utilization for all team members (current month)
+            Resource utilization for {range.description.toLowerCase()}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -251,7 +258,14 @@ export default function AnalyticsPage() {
                     .sort((a, b) => b.utilization_percentage - a.utilization_percentage)
                     .map((person, index) => (
                       <TableRow key={index}>
-                        <TableCell className="font-medium">{person.person_name}</TableCell>
+                        <TableCell className="font-medium">
+                          <Link
+                            href={`/dashboard/people/${person.person_id}`}
+                            className="hover:underline"
+                          >
+                            {person.person_name}
+                          </Link>
+                        </TableCell>
                         <TableCell>
                           <Badge variant="outline">{person.role_type_name}</Badge>
                         </TableCell>

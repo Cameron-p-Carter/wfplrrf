@@ -26,6 +26,12 @@ export default function DashboardLayout({
 
   const pathSegments = pathname.split("/").filter(Boolean);
 
+  const isUuid = (s: string) =>
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
+
+  const segmentLabel = (s: string) =>
+    isUuid(s) ? "Detail" : s.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+
   return (
     <TimePeriodProvider>
       <SidebarProvider>
@@ -44,17 +50,14 @@ export default function DashboardLayout({
                     <BreadcrumbSeparator />
                     <BreadcrumbItem>
                       {index === pathSegments.slice(1).length - 1 ? (
-                        <BreadcrumbPage className="capitalize">
-                          {segment}
+                        <BreadcrumbPage>
+                          {segmentLabel(segment)}
                         </BreadcrumbPage>
                       ) : (
                         <BreadcrumbLink
-                          href={`/${pathSegments
-                            .slice(0, index + 2)
-                            .join("/")}`}
-                          className="capitalize"
+                          href={`/${pathSegments.slice(0, index + 2).join("/")}`}
                         >
-                          {segment}
+                          {segmentLabel(segment)}
                         </BreadcrumbLink>
                       )}
                     </BreadcrumbItem>

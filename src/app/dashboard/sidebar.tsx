@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Computer, LayoutDashboard, Users, Briefcase, UserCheck, Calendar, BarChart3, FileText } from "lucide-react";
@@ -16,11 +17,12 @@ import {
   SidebarHeader,
 } from "@/components/ui/sidebar";
 
-const items = [
+const items: { title: string; url: string; icon: React.ComponentType<{ className?: string }>; exact?: boolean }[] = [
   {
     title: "Dashboard",
     url: "/dashboard",
     icon: LayoutDashboard,
+    exact: true,
   },
   {
     title: "Projects",
@@ -41,6 +43,11 @@ const items = [
     title: "Contracts",
     url: "/dashboard/contracts",
     icon: FileText,
+  },
+  {
+    title: "Analytics",
+    url: "/dashboard/analytics",
+    icon: BarChart3,
   },
   {
     title: "Role Types",
@@ -77,7 +84,11 @@ export function AppSidebar() {
                   <Link href={item.url} passHref legacyBehavior>
                     <SidebarMenuButton
                       className="hover:bg-primary/10 data-[active=true]:bg-primary/20 data-[active=true]:text-primary py-5 px-4 text-lg transition-all duration-150 cursor-pointer"
-                      data-active={pathname === item.url}
+                      data-active={
+                        item.exact
+                          ? pathname === item.url
+                          : pathname === item.url || pathname.startsWith(item.url + "/")
+                      }
                     >
                       <item.icon className="h-5 w-5" />
                       <span className="text-base">{item.title}</span>

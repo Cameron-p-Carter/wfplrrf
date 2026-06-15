@@ -26,7 +26,7 @@ export async function getAllLeave(): Promise<any[]> {
         *,
         people!inner(
           id,
-          name,
+          display_name,
           role_types(name)
         )
       `)
@@ -162,7 +162,7 @@ export async function getPendingLeave(): Promise<any[]> {
         *,
         people!inner(
           id,
-          name,
+          display_name,
           role_types(name)
         )
       `)
