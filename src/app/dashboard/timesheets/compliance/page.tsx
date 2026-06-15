@@ -37,7 +37,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useTimesheetCompliance } from "@/lib/hooks/use-timesheet-compliance";
-import { getWeekLabel, formatDayShort, type EmployeeCompliance } from "@/lib/utils/timesheet-compliance";
+import { getWeekLabel, formatDayShort, type EmployeeCompliance, type Violations } from "@/lib/utils/timesheet-compliance";
 
 type FilterTab = "all" | "issues" | "compliant";
 
@@ -166,6 +166,73 @@ function ApproveDialog({ open, employeeName, violations, onConfirm, onClose }: A
   );
 }
 
+function buildSlackMessage(
+  employeeName: string,
+  weekLabel: string,
+  violations: Violations,
+  weekdayHours: number
+): string {
+  const bullets: string[] = [];
+  if (violations.underHours) {
+    bullets.push(`• Under 40h — logged ${weekdayHours.toFixed(1)}h`);
+  }
+  for (const d of violations.gapDays) {
+    bullets.push(`• Missing entry: ${formatDayShort(d)}`);
+  }
+  for (const d of violations.weekendWork) {
+    bullets.push(`• Weekend work recorded: ${formatDayShort(d)}`);
+  }
+  for (const d of violations.publicHolidayWork) {
+    bullets.push(`• Public holiday — wrong cost centre: ${formatDayShort(d)}`);
+  }
+  const firstName = employeeName.split(" ")[0];
+  return [
+    `Hi ${firstName}, your timesheet for *${weekLabel}* needs attention:`,
+    "",
+    bullets.join("\n"),
+    "",
+    "Please update your timesheet as soon as possible. Thanks!",
+  ].join("\n");
+}
+
+interface SlackPreviewDialogProps {
+  open: boolean;
+  employeeName: string;
+  message: string;
+  sending: boolean;
+  onConfirm: () => void;
+  onClose: () => void;
+}
+
+function SlackPreviewDialog({ open, employeeName, message, sending, onConfirm, onClose }: SlackPreviewDialogProps) {
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Preview Slack Message</DialogTitle>
+          <DialogDescription>
+            This is the message that will be sent to <strong>{employeeName}</strong> via Slack DM.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="rounded-md border bg-muted/40 p-4 text-sm whitespace-pre-wrap font-mono leading-relaxed">
+          {message}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={sending}>Cancel</Button>
+          <Button
+            onClick={onConfirm}
+            disabled={sending}
+            className="gap-1.5 bg-blue-600 hover:bg-blue-700"
+          >
+            {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            {sending ? "Sending…" : "Send"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function CompliancePage() {
   const router = useRouter();
   const [weekStart, setWeekStart] = useState(() =>
@@ -174,22 +241,34 @@ export default function CompliancePage() {
   const [filter, setFilter] = useState<FilterTab>("all");
   const [search, setSearch] = useState("");
   const [approvingEmployee, setApprovingEmployee] = useState<EmployeeCompliance | null>(null);
+  const [slackPreview, setSlackPreview] = useState<{ emp: EmployeeCompliance; message: string } | null>(null);
   const [sendingEmployee, setSendingEmployee] = useState<string | null>(null);
 
-  const handleSendSlack = async (employeeName: string) => {
-    setSendingEmployee(employeeName);
+  const openSlackPreview = (emp: EmployeeCompliance) => {
+    const message = buildSlackMessage(
+      emp.employeeName,
+      getWeekLabel(weekStart),
+      emp.violations,
+      emp.weekdayHours
+    );
+    setSlackPreview({ emp, message });
+  };
+
+  const confirmSendSlack = async () => {
+    if (!slackPreview) return;
+    const { emp } = slackPreview;
+    setSendingEmployee(emp.employeeName);
     try {
       const res = await fetch("/api/timesheets/send-slack", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ week: format(weekStart, "yyyy-MM-dd"), employeeName }),
+        body: JSON.stringify({ week: format(weekStart, "yyyy-MM-dd"), employeeName: emp.employeeName }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Unknown error");
-      toast.success(`Slack sent to ${employeeName.split(" ")[0]}`);
-      if (data.failed?.length > 0) {
-        toast.warning(data.failed[0]);
-      }
+      toast.success(`Slack sent to ${emp.employeeName.split(" ")[0]}`);
+      if (data.failed?.length > 0) toast.warning(data.failed[0]);
+      setSlackPreview(null);
     } catch (err) {
       toast.error(`Failed: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
@@ -379,7 +458,7 @@ export default function CompliancePage() {
                   key={emp.employeeName}
                   emp={emp}
                   sendingSlack={sendingEmployee === emp.employeeName}
-                  onSlack={() => handleSendSlack(emp.employeeName)}
+                  onSlack={() => openSlackPreview(emp)}
                   onCall={() => logAction(emp.employeeName, "call")}
                   onApprove={() => setApprovingEmployee(emp)}
                   onNameClick={() =>
@@ -393,6 +472,17 @@ export default function CompliancePage() {
           )}
         </CardContent>
       </Card>
+
+      {slackPreview && (
+        <SlackPreviewDialog
+          open={!!slackPreview}
+          employeeName={slackPreview.emp.employeeName}
+          message={slackPreview.message}
+          sending={sendingEmployee === slackPreview.emp.employeeName}
+          onConfirm={confirmSendSlack}
+          onClose={() => setSlackPreview(null)}
+        />
+      )}
 
       {approvingEmployee && (
         <ApproveDialog
