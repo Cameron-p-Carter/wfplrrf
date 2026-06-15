@@ -6,6 +6,7 @@ import {
   getTimesheetUploads,
   getTimesheetStats,
   uploadTimesheetCSV,
+  deleteAllTimesheetData,
   type TimesheetUpload,
 } from '@/lib/supabase/queries/timesheets';
 import { parseTimesheetCSV } from '@/lib/utils/csv-parser';
@@ -67,5 +68,15 @@ export function useTimesheets() {
     [refresh]
   );
 
-  return { uploads, stats, loading, uploading, handleFileUpload, refresh };
+  const clearAll = useCallback(async () => {
+    try {
+      await deleteAllTimesheetData();
+      toast.success('All timesheet data cleared');
+      await refresh();
+    } catch {
+      toast.error('Failed to clear data');
+    }
+  }, [refresh]);
+
+  return { uploads, stats, loading, uploading, handleFileUpload, clearAll, refresh };
 }

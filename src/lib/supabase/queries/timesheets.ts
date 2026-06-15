@@ -269,6 +269,22 @@ export async function upsertTimesheetApproval(
   }
 }
 
+export async function deleteAllTimesheetData(): Promise<void> {
+  try {
+    // Delete entries first (upload_id FK is SET NULL, so order matters less, but entries is the main data)
+    const { error: e1 } = await supabase.from('timesheet_entries').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    if (e1) throw e1;
+    const { error: e2 } = await supabase.from('timesheet_uploads').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    if (e2) throw e2;
+    const { error: e3 } = await supabase.from('timesheet_actions').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    if (e3) throw e3;
+    const { error: e4 } = await supabase.from('timesheet_approvals').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    if (e4) throw e4;
+  } catch (error) {
+    handleDatabaseError(error, 'delete all timesheet data');
+  }
+}
+
 export async function getTimesheetStats(): Promise<{
   totalEntries: number;
   totalEmployees: number;

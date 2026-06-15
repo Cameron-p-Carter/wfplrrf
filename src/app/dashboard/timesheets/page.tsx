@@ -6,18 +6,17 @@ import {
   Upload,
   FileSpreadsheet,
   CheckCircle2,
-  Users,
   Database,
   ChevronRight,
   Calendar,
-  AlertTriangle,
-  X,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useTimesheets } from "@/lib/hooks/use-timesheets";
 import { format } from "date-fns";
 
@@ -43,8 +42,9 @@ function formatUploadDate(iso: string): string {
 
 export default function TimesheetsPage() {
   const router = useRouter();
-  const { uploads, stats, loading, uploading, handleFileUpload } = useTimesheets();
+  const { uploads, stats, loading, uploading, handleFileUpload, clearAll } = useTimesheets();
   const [showUploadDialog, setShowUploadDialog] = useState(false);
+  const [showClearDialog, setShowClearDialog] = useState(false);
   const [dragging, setDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -77,6 +77,12 @@ export default function TimesheetsPage() {
             <CheckCircle2 className="mr-2 h-4 w-4" />
             Compliance Check
           </Button>
+          {uploads.length > 0 && (
+            <Button variant="outline" className="text-destructive hover:text-destructive" onClick={() => setShowClearDialog(true)}>
+              <Trash2 className="mr-2 h-4 w-4" />
+              Clear all
+            </Button>
+          )}
           <Button onClick={() => setShowUploadDialog(true)}>
             <Upload className="mr-2 h-4 w-4" />
             Upload CSV
@@ -229,6 +235,27 @@ export default function TimesheetsPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Clear all confirmation */}
+      <AlertDialog open={showClearDialog} onOpenChange={setShowClearDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Clear all timesheet data?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete all <strong>{stats.totalEntries.toLocaleString()} entries</strong>, all upload records, all logged actions, and all approvals. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => { clearAll(); setShowClearDialog(false); }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete everything
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Upload dialog */}
       <Dialog open={showUploadDialog} onOpenChange={setShowUploadDialog}>
