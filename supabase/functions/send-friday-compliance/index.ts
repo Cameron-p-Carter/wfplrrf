@@ -35,14 +35,14 @@ Deno.serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, serviceKey);
 
-    // Allow caller to pass a specific week; default to current week
-    let weekStart: Date;
+    // Allow caller to pass a specific week or employee; defaults to current week / all employees
+    let body: { week?: string; employeeName?: string } = {};
     try {
-      const body = await req.json().catch(() => ({}));
-      weekStart = body.week ? new Date(body.week + 'T00:00:00') : getMonday(new Date());
+      body = await req.json();
     } catch {
-      weekStart = getMonday(new Date());
+      // no body or invalid JSON — use defaults
     }
+    const weekStart = body.week ? new Date(body.week + 'T00:00:00') : getMonday(new Date());
 
     const weekStartStr = fmt(weekStart);
     const weekEnd = new Date(weekStart.getTime() + 4 * 24 * 60 * 60 * 1000);
@@ -170,14 +170,14 @@ Deno.serve(async (req) => {
       return data.ok ? data.user.id : null;
     }
 
-    async function sendDM(userId: string, text: string): Promise<boolean> {
+    async function sendDM(userId: string, text: string): Promise<{ ok: boolean; error?: string }> {
       const openRes = await fetch('https://slack.com/api/conversations.open', {
         method: 'POST',
         headers: { Authorization: `Bearer ${slackToken}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ users: userId }),
       });
       const openData = await openRes.json();
-      if (!openData.ok) return false;
+      if (!openData.ok) return { ok: false, error: `conversations.open: ${openData.error}` };
 
       const msgRes = await fetch('https://slack.com/api/chat.postMessage', {
         method: 'POST',
@@ -185,7 +185,7 @@ Deno.serve(async (req) => {
         body: JSON.stringify({ channel: openData.channel.id, text }),
       });
       const msgData = await msgRes.json();
-      return msgData.ok;
+      return msgData.ok ? { ok: true } : { ok: false, error: `chat.postMessage: ${msgData.error}` };
     }
 
     let sent = 0;
@@ -216,9 +216,9 @@ Deno.serve(async (req) => {
         'Please update your timesheet as soon as possible. Thanks!',
       ].join('\n');
 
-      const ok = await sendDM(slackUserId, message);
+      const result = await sendDM(slackUserId, message);
 
-      if (ok) {
+      if (result.ok) {
         sent++;
         await supabase.from('timesheet_actions').insert({
           employee_name: emp.name,
@@ -230,7 +230,7 @@ Deno.serve(async (req) => {
           notes: `Auto Friday reminder — ${emp.bullets.length} issue${emp.bullets.length !== 1 ? 's' : ''}`,
         });
       } else {
-        failed.push(`${emp.name} (Slack DM failed)`);
+        failed.push(`${emp.name} (${result.error ?? 'Slack DM failed'})`);
       }
     }
 
