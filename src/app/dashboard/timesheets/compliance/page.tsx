@@ -3,6 +3,7 @@
 import * as React from "react";
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { startOfWeek, addWeeks, subWeeks, format } from "date-fns";
 import {
   ChevronLeft,
@@ -16,6 +17,8 @@ import {
   Search,
   CalendarDays,
   CalendarRange,
+  Send,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -171,6 +174,32 @@ export default function CompliancePage() {
   const [filter, setFilter] = useState<FilterTab>("all");
   const [search, setSearch] = useState("");
   const [approvingEmployee, setApprovingEmployee] = useState<EmployeeCompliance | null>(null);
+  const [sending, setSending] = useState(false);
+
+  const handleSendSlacks = async () => {
+    setSending(true);
+    try {
+      const res = await fetch("/api/timesheets/send-slack", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ week: format(weekStart, "yyyy-MM-dd") }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Unknown error");
+      if (data.sent === 0 && data.total === 0) {
+        toast.success("All employees compliant — no Slacks needed");
+      } else {
+        toast.success(`Sent ${data.sent} of ${data.total} Slack messages for ${data.week}`);
+        if (data.failed?.length > 0) {
+          toast.warning(`${data.failed.length} not sent: ${data.failed.join(", ")}`);
+        }
+      }
+    } catch (err) {
+      toast.error(`Failed to send Slacks: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setSending(false);
+    }
+  };
 
   const { compliance, loading, compliantCount, issueCount, logAction, approveException } =
     useTimesheetCompliance(weekStart);
@@ -198,6 +227,24 @@ export default function CompliancePage() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          {/* Send Slacks button */}
+          {issueCount > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 text-blue-600 border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+              onClick={handleSendSlacks}
+              disabled={sending}
+            >
+              {sending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
+              {sending ? "Sending…" : `Slack ${issueCount} employee${issueCount !== 1 ? "s" : ""}`}
+            </Button>
+          )}
+
           {/* View switcher */}
           <div className="flex items-center rounded-md border divide-x overflow-hidden">
             <Button

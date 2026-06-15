@@ -1,0 +1,242 @@
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+const LEAVE_KEYWORDS = ['leave', 'holiday', 'sick', 'rdo', 'flex day', 'time off'];
+
+function isLeaveCC(cc: string): boolean {
+  return LEAVE_KEYWORDS.some((kw) => cc.toLowerCase().includes(kw));
+}
+
+function getMonday(date: Date): Date {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  d.setDate(d.getDate() + diff);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function fmt(d: Date): string {
+  return d.toISOString().slice(0, 10);
+}
+
+function fmtAU(dateStr: string): string {
+  return new Date(dateStr + 'T00:00:00').toLocaleDateString('en-AU', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+  });
+}
+
+Deno.serve(async (req) => {
+  try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const slackToken = Deno.env.get('SLACK_BOT_TOKEN')!;
+
+    const supabase = createClient(supabaseUrl, serviceKey);
+
+    // Allow caller to pass a specific week; default to current week
+    let weekStart: Date;
+    try {
+      const body = await req.json().catch(() => ({}));
+      weekStart = body.week ? new Date(body.week + 'T00:00:00') : getMonday(new Date());
+    } catch {
+      weekStart = getMonday(new Date());
+    }
+
+    const weekStartStr = fmt(weekStart);
+    const weekEnd = new Date(weekStart.getTime() + 4 * 24 * 60 * 60 * 1000);
+    const weekEndStr = fmt(weekEnd);
+    const today = fmt(new Date());
+
+    const weekLabel = `${weekStart.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })} – ${weekEnd.toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })}`;
+
+    // Fetch entries, holidays, and existing approvals in parallel
+    const [entriesRes, holidaysRes, approvalsRes] = await Promise.all([
+      supabase
+        .from('timesheet_entries')
+        .select('employee_name, entry_date, units, cost_centre')
+        .gte('entry_date', weekStartStr)
+        .lte('entry_date', weekEndStr),
+      supabase.from('au_public_holidays').select('holiday_date'),
+      supabase
+        .from('timesheet_approvals')
+        .select('employee_name')
+        .eq('week_start', weekStartStr),
+    ]);
+
+    if (entriesRes.error) throw new Error(entriesRes.error.message);
+    if (holidaysRes.error) throw new Error(holidaysRes.error.message);
+    if (approvalsRes.error) throw new Error(approvalsRes.error.message);
+
+    const entries = entriesRes.data ?? [];
+    const holidaySet = new Set((holidaysRes.data ?? []).map((h: { holiday_date: string }) => h.holiday_date));
+    const approvedSet = new Set((approvalsRes.data ?? []).map((a: { employee_name: string }) => a.employee_name));
+
+    // Weekday date strings Mon–Fri
+    const weekdays: string[] = [];
+    for (let i = 0; i < 5; i++) {
+      weekdays.push(fmt(new Date(weekStart.getTime() + i * 24 * 60 * 60 * 1000)));
+    }
+
+    const publicHolidaysThisWeek = weekdays.filter((d) => holidaySet.has(d)).length;
+    const expectedHours = Math.max(0, 40 - publicHolidaysThisWeek * 8);
+
+    // Group entries by employee → day
+    type DayEntry = { hours: number; costCentres: string[] };
+    const byEmployee = new Map<string, Record<string, DayEntry>>();
+    for (const e of entries) {
+      if (!byEmployee.has(e.employee_name)) byEmployee.set(e.employee_name, {});
+      const dm = byEmployee.get(e.employee_name)!;
+      if (!dm[e.entry_date]) dm[e.entry_date] = { hours: 0, costCentres: [] };
+      dm[e.entry_date].hours += Number(e.units);
+      dm[e.entry_date].costCentres.push(e.cost_centre);
+    }
+
+    // Identify non-compliant employees
+    type Issue = {
+      name: string;
+      weekdayHours: number;
+      bullets: string[];
+    };
+
+    const issues: Issue[] = [];
+
+    for (const [name, dayMap] of byEmployee) {
+      if (approvedSet.has(name)) continue;
+
+      const weekdayHours = weekdays.reduce((s, d) => s + (dayMap[d]?.hours ?? 0), 0);
+      const bullets: string[] = [];
+
+      if (weekdayHours < expectedHours) {
+        bullets.push(`• Under ${expectedHours}h — logged ${weekdayHours.toFixed(1)}h`);
+      }
+
+      for (const d of weekdays) {
+        if (!dayMap[d] && !holidaySet.has(d)) {
+          bullets.push(`• Missing entry: ${fmtAU(d)}`);
+        }
+      }
+
+      for (const [date, day] of Object.entries(dayMap)) {
+        const dow = new Date(date + 'T00:00:00').getDay();
+        if (dow === 0 || dow === 6) {
+          bullets.push(`• Weekend work recorded: ${fmtAU(date)}`);
+        }
+        if (holidaySet.has(date) && !day.costCentres.every(isLeaveCC)) {
+          bullets.push(`• Public holiday — wrong cost centre: ${fmtAU(date)}`);
+        }
+      }
+
+      if (bullets.length > 0) {
+        issues.push({ name, weekdayHours, bullets });
+      }
+    }
+
+    if (issues.length === 0) {
+      return new Response(
+        JSON.stringify({ sent: 0, skipped: 0, failed: [], week: weekLabel, message: 'All compliant' }),
+        { headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Fetch employee emails from people table
+    const names = issues.map((i) => i.name);
+    const { data: people, error: peopleError } = await supabase
+      .from('people')
+      .select('display_name, email')
+      .in('display_name', names);
+    if (peopleError) throw new Error(peopleError.message);
+
+    const emailByName = new Map(
+      (people ?? [])
+        .filter((p: { display_name: string; email: string | null }) => p.email)
+        .map((p: { display_name: string; email: string }) => [p.display_name, p.email])
+    );
+
+    // Slack helpers
+    async function lookupSlackUser(email: string): Promise<string | null> {
+      const res = await fetch(
+        `https://slack.com/api/users.lookupByEmail?email=${encodeURIComponent(email)}`,
+        { headers: { Authorization: `Bearer ${slackToken}` } }
+      );
+      const data = await res.json();
+      return data.ok ? data.user.id : null;
+    }
+
+    async function sendDM(userId: string, text: string): Promise<boolean> {
+      const openRes = await fetch('https://slack.com/api/conversations.open', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${slackToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ users: userId }),
+      });
+      const openData = await openRes.json();
+      if (!openData.ok) return false;
+
+      const msgRes = await fetch('https://slack.com/api/chat.postMessage', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${slackToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ channel: openData.channel.id, text }),
+      });
+      const msgData = await msgRes.json();
+      return msgData.ok;
+    }
+
+    let sent = 0;
+    let skipped = 0;
+    const failed: string[] = [];
+
+    for (const emp of issues) {
+      const email = emailByName.get(emp.name);
+      if (!email) {
+        skipped++;
+        failed.push(`${emp.name} (no email in people table)`);
+        continue;
+      }
+
+      const slackUserId = await lookupSlackUser(email);
+      if (!slackUserId) {
+        skipped++;
+        failed.push(`${emp.name} (not found in Slack workspace)`);
+        continue;
+      }
+
+      const firstName = emp.name.split(' ')[0];
+      const message = [
+        `Hi ${firstName}, your timesheet for *${weekLabel}* needs attention:`,
+        '',
+        emp.bullets.join('\n'),
+        '',
+        'Please update your timesheet as soon as possible. Thanks!',
+      ].join('\n');
+
+      const ok = await sendDM(slackUserId, message);
+
+      if (ok) {
+        sent++;
+        await supabase.from('timesheet_actions').insert({
+          employee_name: emp.name,
+          week_start: weekStartStr,
+          action_type: 'slack',
+          action_date: today,
+          action_by: 'Automated',
+          outcome: 'Sent',
+          notes: `Auto Friday reminder — ${emp.bullets.length} issue${emp.bullets.length !== 1 ? 's' : ''}`,
+        });
+      } else {
+        failed.push(`${emp.name} (Slack DM failed)`);
+      }
+    }
+
+    return new Response(
+      JSON.stringify({ sent, skipped, failed, total: issues.length, week: weekLabel }),
+      { headers: { 'Content-Type': 'application/json' } }
+    );
+  } catch (err) {
+    console.error(err);
+    return new Response(JSON.stringify({ error: String(err) }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+});
