@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { startOfWeek, addWeeks, subWeeks } from "date-fns";
 import {
   ChevronLeft,
@@ -161,6 +162,7 @@ function ApproveDialog({ open, employeeName, violations, onConfirm, onClose }: A
 }
 
 export default function CompliancePage() {
+  const router = useRouter();
   const [weekStart, setWeekStart] = useState(() =>
     startOfWeek(new Date(), { weekStartsOn: 1 })
   );
@@ -331,6 +333,9 @@ export default function CompliancePage() {
                   onSlack={() => logAction(emp.employeeName, "slack")}
                   onCall={() => logAction(emp.employeeName, "call")}
                   onApprove={() => setApprovingEmployee(emp)}
+                  onNameClick={() =>
+                    router.push(`/dashboard/timesheets/employee/${encodeURIComponent(emp.employeeName)}`)
+                  }
                 />
               ))}
             </div>
@@ -364,9 +369,10 @@ interface EmployeeRowProps {
   onSlack: () => void;
   onCall: () => void;
   onApprove: () => void;
+  onNameClick: () => void;
 }
 
-function EmployeeRow({ emp, onSlack, onCall, onApprove }: EmployeeRowProps) {
+function EmployeeRow({ emp, onSlack, onCall, onApprove, onNameClick }: EmployeeRowProps) {
   const hoursColor =
     emp.weekdayHours >= 40
       ? "text-emerald-600"
@@ -405,7 +411,12 @@ function EmployeeRow({ emp, onSlack, onCall, onApprove }: EmployeeRowProps) {
             emp.isCompliant ? "bg-emerald-500" : "bg-red-500"
           }`}
         />
-        <span className="font-medium text-sm truncate">{emp.employeeName}</span>
+        <button
+          className="font-medium text-sm truncate hover:underline text-left"
+          onClick={onNameClick}
+        >
+          {emp.employeeName}
+        </button>
         {emp.hasApproval && (
           <Badge variant="outline" className="text-xs text-emerald-700 border-emerald-200 bg-emerald-50 font-normal flex-shrink-0">
             Approved

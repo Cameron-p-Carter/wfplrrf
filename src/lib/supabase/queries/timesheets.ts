@@ -269,6 +269,55 @@ export async function upsertTimesheetApproval(
   }
 }
 
+export async function getEmployeeEntries(
+  employeeName: string,
+  fromDate: string,
+  toDate: string
+): Promise<TimesheetEntry[]> {
+  try {
+    const { data, error } = await supabase
+      .from('timesheet_entries')
+      .select('*')
+      .eq('employee_name', employeeName)
+      .gte('entry_date', fromDate)
+      .lte('entry_date', toDate)
+      .order('entry_date')
+      .order('cost_centre');
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    handleDatabaseError(error, 'fetch employee entries');
+  }
+}
+
+export async function getAllEmployeeActions(employeeName: string): Promise<TimesheetAction[]> {
+  try {
+    const { data, error } = await supabase
+      .from('timesheet_actions')
+      .select('*')
+      .eq('employee_name', employeeName)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    handleDatabaseError(error, 'fetch employee actions');
+  }
+}
+
+export async function getAllEmployeeApprovals(employeeName: string): Promise<TimesheetApproval[]> {
+  try {
+    const { data, error } = await supabase
+      .from('timesheet_approvals')
+      .select('*')
+      .eq('employee_name', employeeName)
+      .order('week_start', { ascending: false });
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    handleDatabaseError(error, 'fetch employee approvals');
+  }
+}
+
 export async function deleteAllTimesheetData(): Promise<void> {
   try {
     // Delete entries first (upload_id FK is SET NULL, so order matters less, but entries is the main data)
