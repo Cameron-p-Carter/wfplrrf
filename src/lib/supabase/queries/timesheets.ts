@@ -191,6 +191,41 @@ export async function getPublicHolidays(): Promise<PublicHoliday[]> {
   }
 }
 
+export async function getTimesheetActionsForDateRange(
+  fromWeekStart: string,
+  toWeekStart: string
+): Promise<TimesheetAction[]> {
+  try {
+    const { data, error } = await supabase
+      .from('timesheet_actions')
+      .select('*')
+      .gte('week_start', fromWeekStart)
+      .lte('week_start', toWeekStart)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    handleDatabaseError(error, 'fetch timesheet actions for date range');
+  }
+}
+
+export async function getTimesheetApprovalsForDateRange(
+  fromWeekStart: string,
+  toWeekStart: string
+): Promise<TimesheetApproval[]> {
+  try {
+    const { data, error } = await supabase
+      .from('timesheet_approvals')
+      .select('*')
+      .gte('week_start', fromWeekStart)
+      .lte('week_start', toWeekStart);
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    handleDatabaseError(error, 'fetch timesheet approvals for date range');
+  }
+}
+
 export async function getTimesheetActionsForWeek(weekStart: string): Promise<TimesheetAction[]> {
   try {
     const { data, error } = await supabase

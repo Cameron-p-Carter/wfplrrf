@@ -1,4 +1,4 @@
-import { eachDayOfInterval, format, getDay } from 'date-fns';
+import { eachDayOfInterval, format, getDay, startOfWeek, endOfMonth, addDays } from 'date-fns';
 
 export interface TimesheetEntry {
   id: string;
@@ -183,6 +183,125 @@ export function computeWeekCompliance(
     if (a.violationCount !== b.violationCount) return b.violationCount - a.violationCount;
     return a.employeeName.localeCompare(b.employeeName);
   });
+}
+
+export interface WeekSummary {
+  weekStart: string;
+  weekLabel: string;
+  weekdayHours: number;
+  totalHours: number;
+  violations: Violations;
+  violationCount: number;
+  isCompliant: boolean;
+  hasApproval: boolean;
+}
+
+export interface EmployeeMonthCompliance {
+  employeeName: string;
+  totalMonthHours: number;
+  totalWeekdayHours: number;
+  weeks: WeekSummary[];
+  totalViolationCount: number;
+  compliantWeeks: number;
+  issueWeeks: number;
+  isCompliant: boolean;
+  hasAnyApproval: boolean;
+  actions: TimesheetAction[];
+  latestAction: TimesheetAction | null;
+}
+
+export function computeMonthCompliance(
+  monthStart: Date,
+  entries: TimesheetEntry[],
+  holidays: PublicHoliday[],
+  actions: TimesheetAction[],
+  approvals: TimesheetApproval[]
+): EmployeeMonthCompliance[] {
+  const monthEnd = endOfMonth(monthStart);
+
+  // Collect all Mondays whose weekdays (Mon–Fri) overlap with this month
+  const firstWeekStart = startOfWeek(monthStart, { weekStartsOn: 1 });
+  const weekStarts: Date[] = [];
+  let ws = firstWeekStart;
+  while (ws <= monthEnd) {
+    const fri = addDays(ws, 4);
+    if (fri >= monthStart) weekStarts.push(new Date(ws));
+    ws = addDays(ws, 7);
+  }
+
+  // Compute per-week compliance for each overlapping week
+  const allWeekCompliances = weekStarts.map((w) =>
+    computeWeekCompliance(w, entries, holidays, actions, approvals)
+  );
+
+  // Union of all employees who appear in any week
+  const employeeNames = new Set<string>();
+  for (const wc of allWeekCompliances) {
+    for (const emp of wc) employeeNames.add(emp.employeeName);
+  }
+
+  const results: EmployeeMonthCompliance[] = [];
+
+  for (const employeeName of employeeNames) {
+    const weeks: WeekSummary[] = [];
+    let totalWeekdayHours = 0;
+    let totalMonthHours = 0;
+    let totalViolationCount = 0;
+    let compliantWeeks = 0;
+    let issueWeeks = 0;
+
+    for (let i = 0; i < weekStarts.length; i++) {
+      const empWeek = allWeekCompliances[i].find((e) => e.employeeName === employeeName);
+      if (!empWeek) continue;
+
+      totalWeekdayHours += empWeek.weekdayHours;
+      totalMonthHours += empWeek.totalHours;
+      if (empWeek.isCompliant) compliantWeeks++;
+      else {
+        issueWeeks++;
+        totalViolationCount += empWeek.violationCount;
+      }
+
+      weeks.push({
+        weekStart: format(weekStarts[i], 'yyyy-MM-dd'),
+        weekLabel: getWeekLabel(weekStarts[i]),
+        weekdayHours: empWeek.weekdayHours,
+        totalHours: empWeek.totalHours,
+        violations: empWeek.violations,
+        violationCount: empWeek.violationCount,
+        isCompliant: empWeek.isCompliant,
+        hasApproval: empWeek.hasApproval,
+      });
+    }
+
+    const empActions = actions
+      .filter((a) => a.employee_name === employeeName)
+      .sort((a, b) => b.created_at.localeCompare(a.created_at));
+
+    results.push({
+      employeeName,
+      totalMonthHours,
+      totalWeekdayHours,
+      weeks,
+      totalViolationCount,
+      compliantWeeks,
+      issueWeeks,
+      isCompliant: issueWeeks === 0,
+      hasAnyApproval: weeks.some((w) => w.hasApproval),
+      actions: empActions,
+      latestAction: empActions[0] ?? null,
+    });
+  }
+
+  return results.sort((a, b) => {
+    if (a.isCompliant !== b.isCompliant) return a.isCompliant ? 1 : -1;
+    if (a.issueWeeks !== b.issueWeeks) return b.issueWeeks - a.issueWeeks;
+    return a.employeeName.localeCompare(b.employeeName);
+  });
+}
+
+export function getMonthLabel(monthStart: Date): string {
+  return monthStart.toLocaleDateString('en-AU', { month: 'long', year: 'numeric' });
 }
 
 export function getWeekLabel(weekStart: Date): string {

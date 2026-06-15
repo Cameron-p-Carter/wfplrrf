@@ -145,26 +145,47 @@ export default function TimesheetsPage() {
         </Card>
       </div>
 
-      {/* Compliance shortcut */}
-      <Card
-        className="cursor-pointer hover:bg-muted/40 transition-colors border-dashed"
-        onClick={() => router.push("/dashboard/timesheets/compliance")}
-      >
-        <CardContent className="flex items-center justify-between py-4">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center">
-              <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+      {/* Compliance shortcuts */}
+      <div className="grid gap-3 md:grid-cols-2">
+        <Card
+          className="cursor-pointer hover:bg-muted/40 transition-colors border-dashed"
+          onClick={() => router.push("/dashboard/timesheets/compliance")}
+        >
+          <CardContent className="flex items-center justify-between py-4">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center">
+                <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+              </div>
+              <div>
+                <p className="font-medium">Weekly Compliance</p>
+                <p className="text-sm text-muted-foreground">
+                  Per-week violations, Slack and call follow-ups
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="font-medium">Weekly Compliance Check</p>
-              <p className="text-sm text-muted-foreground">
-                Review timesheet violations, log Slack messages and follow-up calls
-              </p>
+            <ChevronRight className="h-5 w-5 text-muted-foreground" />
+          </CardContent>
+        </Card>
+        <Card
+          className="cursor-pointer hover:bg-muted/40 transition-colors border-dashed"
+          onClick={() => router.push("/dashboard/timesheets/compliance/monthly")}
+        >
+          <CardContent className="flex items-center justify-between py-4">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                <Calendar className="h-5 w-5 text-blue-600" />
+              </div>
+              <div>
+                <p className="font-medium">Monthly Compliance</p>
+                <p className="text-sm text-muted-foreground">
+                  Month-wide overview with per-week breakdown
+                </p>
+              </div>
             </div>
-          </div>
-          <ChevronRight className="h-5 w-5 text-muted-foreground" />
-        </CardContent>
-      </Card>
+            <ChevronRight className="h-5 w-5 text-muted-foreground" />
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Upload history */}
       <Card>

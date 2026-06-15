@@ -14,6 +14,8 @@ import {
   Calendar,
   XCircle,
   Search,
+  CalendarDays,
+  CalendarRange,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -195,8 +197,29 @@ export default function CompliancePage() {
             {loading ? "Loading…" : `${compliance.length} employees · ${issueCount} issues · ${compliantCount} compliant`}
           </p>
         </div>
-        {/* Week navigator */}
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* View switcher */}
+          <div className="flex items-center rounded-md border divide-x overflow-hidden">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="rounded-none h-9 gap-1.5 bg-muted font-semibold"
+            >
+              <CalendarDays className="h-4 w-4" />
+              Weekly
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="rounded-none h-9 gap-1.5 text-muted-foreground"
+              onClick={() => router.push("/dashboard/timesheets/compliance/monthly")}
+            >
+              <CalendarRange className="h-4 w-4" />
+              Monthly
+            </Button>
+          </div>
+
+          {/* Week navigator */}
           <Button variant="outline" size="sm" onClick={() => setWeekStart(subWeeks(weekStart, 1))}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
