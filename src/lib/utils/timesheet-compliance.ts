@@ -60,6 +60,7 @@ export interface EmployeeCompliance {
   violationCount: number;
   isCompliant: boolean;
   isPartTime: boolean;
+  isOffWork: boolean;
   hasApproval: boolean;
   approval: TimesheetApproval | null;
   actions: TimesheetAction[];
@@ -72,7 +73,9 @@ export function computeWeekCompliance(
   holidays: PublicHoliday[],
   actions: TimesheetAction[],
   approvals: TimesheetApproval[],
-  partTimeEmployees: Set<string> = new Set()
+  partTimeEmployees: Set<string> = new Set(),
+  allEmployeeNames: string[] = [],
+  offWorkEmployees: Set<string> = new Set()
 ): EmployeeCompliance[] {
   const weekEnd = new Date(weekStart.getTime() + 6 * 24 * 60 * 60 * 1000);
   const weekStartStr = format(weekStart, 'yyyy-MM-dd');
@@ -98,6 +101,8 @@ export function computeWeekCompliance(
   const results: EmployeeCompliance[] = [];
 
   for (const [employeeName, empEntries] of byEmployee) {
+    if (offWorkEmployees.has(employeeName)) continue;
+
     const dayEntries: Record<string, DayEntry> = {};
     let totalHours = 0;
 
@@ -167,6 +172,51 @@ export function computeWeekCompliance(
       violationCount,
       isCompliant: violationCount === 0 || !!approval,
       isPartTime,
+      isOffWork: false,
+      hasApproval: !!approval,
+      approval,
+      actions: empActions,
+      latestAction: empActions[0] ?? null,
+    });
+  }
+
+  // Add employees from the known list who submitted no entries at all
+  for (const employeeName of allEmployeeNames) {
+    if (byEmployee.has(employeeName)) continue;
+    if (offWorkEmployees.has(employeeName)) continue;
+
+    const isPartTime = partTimeEmployees.has(employeeName);
+    const publicHolidaysThisWeek = weekdays.filter((d) => holidaySet.has(format(d, 'yyyy-MM-dd'))).length;
+    const expectedHours = Math.max(0, 40 - publicHolidaysThisWeek * 8);
+
+    const gapDays = isPartTime
+      ? []
+      : weekdays.map((d) => format(d, 'yyyy-MM-dd')).filter((ds) => !holidaySet.has(ds));
+
+    const underHours = !isPartTime;
+    const violations: Violations = { underHours, overHours: false, weekendWork: [], gapDays };
+    const violationCount = (underHours ? 1 : 0) + gapDays.length;
+
+    const approval = approvals.find(
+      (a) => a.employee_name === employeeName && a.week_start === weekStartStr
+    ) ?? null;
+
+    const empActions = actions
+      .filter((a) => a.employee_name === employeeName && a.week_start === weekStartStr)
+      .sort((a, b) => b.created_at.localeCompare(a.created_at));
+
+    results.push({
+      employeeName,
+      totalHours: 0,
+      weekdayHours: 0,
+      expectedHours,
+      publicHolidaysThisWeek,
+      dayEntries: {},
+      violations,
+      violationCount,
+      isCompliant: violationCount === 0 || !!approval,
+      isPartTime,
+      isOffWork: false,
       hasApproval: !!approval,
       approval,
       actions: empActions,
@@ -212,7 +262,9 @@ export function computeMonthCompliance(
   holidays: PublicHoliday[],
   actions: TimesheetAction[],
   approvals: TimesheetApproval[],
-  partTimeEmployees: Set<string> = new Set()
+  partTimeEmployees: Set<string> = new Set(),
+  allEmployeeNames: string[] = [],
+  offWorkEmployees: Set<string> = new Set()
 ): EmployeeMonthCompliance[] {
   const monthEnd = endOfMonth(monthStart);
 
@@ -228,7 +280,7 @@ export function computeMonthCompliance(
 
   // Compute per-week compliance for each overlapping week
   const allWeekCompliances = weekStarts.map((w) =>
-    computeWeekCompliance(w, entries, holidays, actions, approvals, partTimeEmployees)
+    computeWeekCompliance(w, entries, holidays, actions, approvals, partTimeEmployees, allEmployeeNames, offWorkEmployees)
   );
 
   // Union of all employees who appear in any week

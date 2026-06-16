@@ -356,6 +356,7 @@ export async function getAllEmployeeApprovals(employeeName: string): Promise<Tim
 export interface TimesheetEmployeeSettings {
   employee_name: string;
   is_part_time: boolean;
+  is_off_work: boolean;
   updated_at: string;
 }
 
@@ -363,11 +364,25 @@ export async function getTimesheetEmployeeSettings(): Promise<TimesheetEmployeeS
   try {
     const { data, error } = await supabase
       .from('timesheet_employee_settings')
-      .select('*');
+      .select('employee_name, is_part_time, is_off_work, updated_at');
     if (error) throw error;
     return data ?? [];
   } catch (error) {
     handleDatabaseError(error, 'fetch timesheet employee settings');
+  }
+}
+
+export async function getAllPeopleNames(): Promise<string[]> {
+  try {
+    const { data, error } = await supabase
+      .from('people')
+      .select('display_name')
+      .eq('terminated', false)
+      .order('display_name');
+    if (error) throw error;
+    return (data ?? []).map((p: { display_name: string }) => p.display_name).filter(Boolean);
+  } catch (error) {
+    handleDatabaseError(error, 'fetch people names');
   }
 }
 
@@ -379,6 +394,17 @@ export async function setEmployeePartTime(employeeName: string, isPartTime: bool
     if (error) throw error;
   } catch (error) {
     handleDatabaseError(error, 'set employee part time');
+  }
+}
+
+export async function setEmployeeOffWork(employeeName: string, isOffWork: boolean): Promise<void> {
+  try {
+    const { error } = await supabase
+      .from('timesheet_employee_settings')
+      .upsert({ employee_name: employeeName, is_off_work: isOffWork, updated_at: new Date().toISOString() }, { onConflict: 'employee_name' });
+    if (error) throw error;
+  } catch (error) {
+    handleDatabaseError(error, 'set employee off work');
   }
 }
 

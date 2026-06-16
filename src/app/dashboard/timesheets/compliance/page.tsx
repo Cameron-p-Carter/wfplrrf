@@ -300,7 +300,7 @@ function CompliancePageInner() {
     }
   };
 
-  const { compliance, loading, compliantCount, issueCount, logAction, approveException, togglePartTime } =
+  const { compliance, loading, compliantCount, issueCount, logAction, approveException, togglePartTime, toggleOffWork } =
     useTimesheetCompliance(weekStart);
 
   const filtered = useMemo(() => {
@@ -485,6 +485,7 @@ function CompliancePageInner() {
                   onSlack={() => openSlackPreview(emp)}
                   onCall={() => logAction(emp.employeeName, "call")}
                   onTogglePartTime={() => togglePartTime(emp.employeeName, !emp.isPartTime)}
+                  onToggleOffWork={() => toggleOffWork(emp.employeeName, !emp.isOffWork)}
                   onApprove={() => setApprovingEmployee(emp)}
                   onNameClick={() =>
                     router.push(
@@ -537,10 +538,11 @@ interface EmployeeRowProps {
   onCall: () => void;
   onApprove: () => void;
   onTogglePartTime: () => void;
+  onToggleOffWork: () => void;
   onNameClick: () => void;
 }
 
-function EmployeeRow({ emp, sendingSlack, onSlack, onCall, onApprove, onTogglePartTime, onNameClick }: EmployeeRowProps) {
+function EmployeeRow({ emp, sendingSlack, onSlack, onCall, onApprove, onTogglePartTime, onToggleOffWork, onNameClick }: EmployeeRowProps) {
   const hoursColor =
     emp.isPartTime
       ? "text-muted-foreground"
@@ -604,6 +606,17 @@ function EmployeeRow({ emp, sendingSlack, onSlack, onCall, onApprove, onTogglePa
           }`}
         >
           PT
+        </button>
+        <button
+          onClick={onToggleOffWork}
+          title={emp.isOffWork ? "Off work (click to mark active)" : "Active (click to mark off work)"}
+          className={`flex-shrink-0 rounded px-1.5 py-0.5 text-xs font-medium border transition-colors ${
+            emp.isOffWork
+              ? "bg-slate-100 text-slate-600 border-slate-300 hover:bg-slate-200"
+              : "text-muted-foreground/40 border-transparent hover:border-muted-foreground/20 hover:text-muted-foreground"
+          }`}
+        >
+          Off
         </button>
       </div>
 

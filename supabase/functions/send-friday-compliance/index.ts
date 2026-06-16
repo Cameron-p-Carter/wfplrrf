@@ -47,7 +47,7 @@ Deno.serve(async (req) => {
     const weekLabel = `${weekStart.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })} – ${weekEnd.toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })}`;
 
     // Fetch entries, holidays, approvals, and employee settings in parallel
-    const [entriesRes, holidaysRes, approvalsRes, settingsRes] = await Promise.all([
+    const [entriesRes, holidaysRes, approvalsRes, settingsRes, peopleRes] = await Promise.all([
       supabase
         .from('timesheet_entries')
         .select('employee_name, entry_date, units, cost_centre')
@@ -61,6 +61,7 @@ Deno.serve(async (req) => {
       supabase
         .from('timesheet_employee_settings')
         .select('employee_name, is_part_time'),
+      supabase.from('people').select('display_name, email'),
     ]);
 
     if (entriesRes.error) throw new Error(entriesRes.error.message);
@@ -70,11 +71,11 @@ Deno.serve(async (req) => {
     const entries = entriesRes.data ?? [];
     const holidaySet = new Set((holidaysRes.data ?? []).map((h: { holiday_date: string }) => h.holiday_date));
     const approvedSet = new Set((approvalsRes.data ?? []).map((a: { employee_name: string }) => a.employee_name));
-    const partTimeSet = new Set(
-      ((settingsRes.data ?? []) as { employee_name: string; is_part_time: boolean }[])
-        .filter((s) => s.is_part_time)
-        .map((s) => s.employee_name)
-    );
+    const settings = (settingsRes.data ?? []) as { employee_name: string; is_part_time: boolean; is_off_work: boolean }[];
+    const partTimeSet = new Set(settings.filter((s) => s.is_part_time).map((s) => s.employee_name));
+    const offWorkSet = new Set(settings.filter((s) => s.is_off_work).map((s) => s.employee_name));
+    const allPeople = (peopleRes.data ?? []) as { display_name: string; email: string | null }[];
+    const allPeopleNames = allPeople.map((p) => p.display_name).filter(Boolean);
 
     // Weekday date strings Mon–Fri
     const weekdays: string[] = [];
@@ -107,6 +108,7 @@ Deno.serve(async (req) => {
 
     for (const [name, dayMap] of byEmployee) {
       if (approvedSet.has(name)) continue;
+      if (offWorkSet.has(name)) continue;
 
       const weekdayHours = weekdays.reduce((s, d) => s + (dayMap[d]?.hours ?? 0), 0);
       const isPartTime = partTimeSet.has(name);
@@ -139,6 +141,17 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Add employees from the people list who submitted no entries at all
+    for (const name of allPeopleNames) {
+      if (byEmployee.has(name)) continue;
+      if (approvedSet.has(name)) continue;
+      if (offWorkSet.has(name)) continue;
+      const isPartTime = partTimeSet.has(name);
+      if (isPartTime) continue;
+      const bullets: string[] = [`• No timesheet submitted — logged 0.0h`];
+      issues.push({ name, weekdayHours: 0, bullets });
+    }
+
     // If a specific employee was requested, filter to just them
     const targetEmployee: string | undefined = body.employeeName;
     const filteredIssues = targetEmployee
@@ -152,18 +165,11 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Fetch employee emails from people table
-    const names = filteredIssues.map((i) => i.name);
-    const { data: people, error: peopleError } = await supabase
-      .from('people')
-      .select('display_name, email')
-      .in('display_name', names);
-    if (peopleError) throw new Error(peopleError.message);
-
+    // Build email map from already-fetched people data
     const emailByName = new Map(
-      (people ?? [])
-        .filter((p: { display_name: string; email: string | null }) => p.email)
-        .map((p: { display_name: string; email: string }) => [p.display_name, p.email])
+      allPeople
+        .filter((p) => p.email)
+        .map((p) => [p.display_name, p.email as string])
     );
 
     // Slack helpers

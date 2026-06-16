@@ -9,7 +9,9 @@ import {
   getTimesheetActionsForWeek,
   getTimesheetApprovalsForWeek,
   getTimesheetEmployeeSettings,
+  getAllPeopleNames,
   setEmployeePartTime,
+  setEmployeeOffWork,
   logTimesheetAction,
   upsertTimesheetApproval,
 } from '@/lib/supabase/queries/timesheets';
@@ -28,16 +30,18 @@ export function useTimesheetCompliance(weekStart: Date) {
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
-      const [entries, holidays, actions, approvals, settings] = await Promise.all([
+      const [entries, holidays, actions, approvals, settings, peopleNames] = await Promise.all([
         getTimesheetEntriesForWeek(weekStartStr, weekEndStr),
         getPublicHolidays(),
         getTimesheetActionsForWeek(weekStartStr),
         getTimesheetApprovalsForWeek(weekStartStr),
         getTimesheetEmployeeSettings(),
+        getAllPeopleNames(),
       ]);
       const partTimeSet = new Set(settings.filter((s) => s.is_part_time).map((s) => s.employee_name));
+      const offWorkSet = new Set(settings.filter((s) => s.is_off_work).map((s) => s.employee_name));
       const computedWeekStart = new Date(weekStartStr + 'T00:00:00');
-      const results = computeWeekCompliance(computedWeekStart, entries, holidays, actions, approvals, partTimeSet);
+      const results = computeWeekCompliance(computedWeekStart, entries, holidays, actions, approvals, partTimeSet, peopleNames, offWorkSet);
       setCompliance(results);
     } finally {
       setLoading(false);
@@ -101,6 +105,18 @@ export function useTimesheetCompliance(weekStart: Date) {
     [refresh]
   );
 
+  const toggleOffWork = useCallback(
+    async (employeeName: string, isOffWork: boolean) => {
+      try {
+        await setEmployeeOffWork(employeeName, isOffWork);
+        await refresh();
+      } catch {
+        toast.error('Failed to update off-work setting');
+      }
+    },
+    [refresh]
+  );
+
   const compliantCount = compliance.filter((e) => e.isCompliant).length;
   const issueCount = compliance.filter((e) => !e.isCompliant).length;
 
@@ -112,6 +128,7 @@ export function useTimesheetCompliance(weekStart: Date) {
     logAction,
     approveException,
     togglePartTime,
+    toggleOffWork,
     refresh,
   };
 }
