@@ -386,6 +386,69 @@ export async function getAllPeopleNames(): Promise<string[]> {
   }
 }
 
+export interface PersonForMapping {
+  display_name: string;
+  last_name: string;
+}
+
+export async function getAllPeopleForMapping(): Promise<PersonForMapping[]> {
+  try {
+    const { data, error } = await supabase
+      .from('people')
+      .select('display_name, last_name')
+      .eq('terminated', false)
+      .order('display_name');
+    if (error) throw error;
+    return (data ?? []).filter((p: PersonForMapping) => p.display_name && p.last_name);
+  } catch (error) {
+    handleDatabaseError(error, 'fetch people for mapping');
+  }
+}
+
+export async function getRecentTimesheetNames(weeksBack = 8): Promise<string[]> {
+  try {
+    const since = new Date();
+    since.setDate(since.getDate() - weeksBack * 7);
+    const sinceStr = since.toISOString().slice(0, 10);
+    const { data, error } = await supabase
+      .from('timesheet_entries')
+      .select('employee_name')
+      .gte('entry_date', sinceStr);
+    if (error) throw error;
+    return [...new Set((data ?? []).map((e: { employee_name: string }) => e.employee_name).filter(Boolean))];
+  } catch (error) {
+    handleDatabaseError(error, 'fetch recent timesheet names');
+  }
+}
+
+export interface TimesheetNameMapping {
+  timesheet_name: string;
+  display_name: string;
+}
+
+export async function getTimesheetNameMappings(): Promise<TimesheetNameMapping[]> {
+  try {
+    const { data, error } = await supabase
+      .from('timesheet_name_mappings')
+      .select('timesheet_name, display_name');
+    if (error) throw error;
+    return data ?? [];
+  } catch (error) {
+    handleDatabaseError(error, 'fetch timesheet name mappings');
+  }
+}
+
+export async function createTimesheetNameMapping(timesheetName: string, displayName: string): Promise<void> {
+  try {
+    const { error } = await supabase
+      .from('timesheet_name_mappings')
+      .upsert({ timesheet_name: timesheetName, display_name: displayName }, { onConflict: 'timesheet_name' });
+    if (error) throw error;
+  } catch (error) {
+    handleDatabaseError(error, 'create timesheet name mapping');
+  }
+}
+
 export async function setEmployeePartTime(employeeName: string, isPartTime: boolean): Promise<void> {
   try {
     const { error } = await supabase

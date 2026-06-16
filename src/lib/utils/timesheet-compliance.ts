@@ -75,7 +75,8 @@ export function computeWeekCompliance(
   approvals: TimesheetApproval[],
   partTimeEmployees: Set<string> = new Set(),
   allEmployeeNames: string[] = [],
-  offWorkEmployees: Set<string> = new Set()
+  offWorkEmployees: Set<string> = new Set(),
+  nameMappings: Map<string, string> = new Map()
 ): EmployeeCompliance[] {
   const weekEnd = new Date(weekStart.getTime() + 6 * 24 * 60 * 60 * 1000);
   const weekStartStr = format(weekStart, 'yyyy-MM-dd');
@@ -91,11 +92,12 @@ export function computeWeekCompliance(
     (e) => e.entry_date >= weekStartStr && e.entry_date <= weekEndStr
   );
 
-  // Group by employee
+  // Group by employee, applying name mappings (timesheet name → canonical display name)
   const byEmployee = new Map<string, TimesheetEntry[]>();
   for (const e of weekEntries) {
-    if (!byEmployee.has(e.employee_name)) byEmployee.set(e.employee_name, []);
-    byEmployee.get(e.employee_name)!.push(e);
+    const name = nameMappings.get(e.employee_name) ?? e.employee_name;
+    if (!byEmployee.has(name)) byEmployee.set(name, []);
+    byEmployee.get(name)!.push(e);
   }
 
   const results: EmployeeCompliance[] = [];
@@ -264,7 +266,8 @@ export function computeMonthCompliance(
   approvals: TimesheetApproval[],
   partTimeEmployees: Set<string> = new Set(),
   allEmployeeNames: string[] = [],
-  offWorkEmployees: Set<string> = new Set()
+  offWorkEmployees: Set<string> = new Set(),
+  nameMappings: Map<string, string> = new Map()
 ): EmployeeMonthCompliance[] {
   const monthEnd = endOfMonth(monthStart);
 
@@ -280,7 +283,7 @@ export function computeMonthCompliance(
 
   // Compute per-week compliance for each overlapping week
   const allWeekCompliances = weekStarts.map((w) =>
-    computeWeekCompliance(w, entries, holidays, actions, approvals, partTimeEmployees, allEmployeeNames, offWorkEmployees)
+    computeWeekCompliance(w, entries, holidays, actions, approvals, partTimeEmployees, allEmployeeNames, offWorkEmployees, nameMappings)
   );
 
   // Union of all employees who appear in any week

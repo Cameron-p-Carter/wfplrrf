@@ -10,6 +10,7 @@ import {
   getTimesheetApprovalsForWeek,
   getTimesheetEmployeeSettings,
   getAllPeopleNames,
+  getTimesheetNameMappings,
   setEmployeePartTime,
   setEmployeeOffWork,
   logTimesheetAction,
@@ -30,18 +31,20 @@ export function useTimesheetCompliance(weekStart: Date) {
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
-      const [entries, holidays, actions, approvals, settings, peopleNames] = await Promise.all([
+      const [entries, holidays, actions, approvals, settings, peopleNames, mappings] = await Promise.all([
         getTimesheetEntriesForWeek(weekStartStr, weekEndStr),
         getPublicHolidays(),
         getTimesheetActionsForWeek(weekStartStr),
         getTimesheetApprovalsForWeek(weekStartStr),
         getTimesheetEmployeeSettings(),
         getAllPeopleNames(),
+        getTimesheetNameMappings(),
       ]);
       const partTimeSet = new Set(settings.filter((s) => s.is_part_time).map((s) => s.employee_name));
       const offWorkSet = new Set(settings.filter((s) => s.is_off_work).map((s) => s.employee_name));
+      const nameMappings = new Map(mappings.map((m) => [m.timesheet_name, m.display_name]));
       const computedWeekStart = new Date(weekStartStr + 'T00:00:00');
-      const results = computeWeekCompliance(computedWeekStart, entries, holidays, actions, approvals, partTimeSet, peopleNames, offWorkSet);
+      const results = computeWeekCompliance(computedWeekStart, entries, holidays, actions, approvals, partTimeSet, peopleNames, offWorkSet, nameMappings);
       setCompliance(results);
     } finally {
       setLoading(false);

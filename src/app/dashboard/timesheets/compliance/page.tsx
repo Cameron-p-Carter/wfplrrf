@@ -37,6 +37,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useTimesheetCompliance } from "@/lib/hooks/use-timesheet-compliance";
+import { useNameMappingSuggestions } from "@/lib/hooks/use-name-mapping-suggestions";
 import { getWeekLabel, formatDayShort, type EmployeeCompliance, type Violations } from "@/lib/utils/timesheet-compliance";
 
 type FilterTab = "all" | "issues" | "compliant";
@@ -300,8 +301,10 @@ function CompliancePageInner() {
     }
   };
 
-  const { compliance, loading, compliantCount, issueCount, logAction, approveException, togglePartTime, toggleOffWork } =
+  const { compliance, loading, compliantCount, issueCount, logAction, approveException, togglePartTime, toggleOffWork, refresh } =
     useTimesheetCompliance(weekStart);
+
+  const { suggestions, confirmMapping } = useNameMappingSuggestions();
 
   const filtered = useMemo(() => {
     return compliance.filter((e) => {
@@ -408,6 +411,41 @@ function CompliancePageInner() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Name mapping suggestions */}
+      {suggestions.length > 0 && (
+        <Card className="border-amber-200 bg-amber-50/50">
+          <CardHeader className="pb-2 pt-4 px-6">
+            <CardTitle className="text-sm font-semibold text-amber-800">Name mapping suggestions</CardTitle>
+            <CardDescription className="text-amber-700 text-xs">
+              These timesheet names don't match the employee list but share a last name. Confirm to link them.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="px-6 pb-4 space-y-2">
+            {suggestions.map((s) => (
+              <div key={s.timesheetName} className="flex items-center justify-between gap-4 rounded-md border border-amber-200 bg-white px-3 py-2">
+                <div className="text-sm">
+                  <span className="font-medium">{s.timesheetName}</span>
+                  <span className="text-muted-foreground mx-2">→</span>
+                  <span className="font-medium">{s.suggestedDisplayName}</span>
+                  <span className="text-xs text-muted-foreground ml-2">(HR name)</span>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-amber-300 hover:bg-amber-100 text-amber-800 shrink-0"
+                  onClick={async () => {
+                    await confirmMapping(s.timesheetName, s.suggestedDisplayName);
+                    refresh();
+                  }}
+                >
+                  Map
+                </Button>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Employee table */}
       <Card>

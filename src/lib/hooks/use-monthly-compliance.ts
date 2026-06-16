@@ -9,6 +9,7 @@ import {
   getTimesheetApprovalsForDateRange,
   getTimesheetEmployeeSettings,
   getAllPeopleNames,
+  getTimesheetNameMappings,
 } from '@/lib/supabase/queries/timesheets';
 import {
   computeMonthCompliance,
@@ -34,18 +35,20 @@ export function useMonthlyCompliance(monthStart: Date) {
 
     setLoading(true);
     try {
-      const [entries, holidays, actions, approvals, settings, peopleNames] = await Promise.all([
+      const [entries, holidays, actions, approvals, settings, peopleNames, mappings] = await Promise.all([
         getTimesheetEntriesForWeek(fromStr, toStr),
         getPublicHolidays(),
         getTimesheetActionsForDateRange(fromStr, toWeekStartStr),
         getTimesheetApprovalsForDateRange(fromStr, toWeekStartStr),
         getTimesheetEmployeeSettings(),
         getAllPeopleNames(),
+        getTimesheetNameMappings(),
       ]);
 
       const partTimeSet = new Set(settings.filter((s) => s.is_part_time).map((s) => s.employee_name));
       const offWorkSet = new Set(settings.filter((s) => s.is_off_work).map((s) => s.employee_name));
-      const result = computeMonthCompliance(ms, entries, holidays, actions, approvals, partTimeSet, peopleNames, offWorkSet);
+      const nameMappings = new Map(mappings.map((m) => [m.timesheet_name, m.display_name]));
+      const result = computeMonthCompliance(ms, entries, holidays, actions, approvals, partTimeSet, peopleNames, offWorkSet, nameMappings);
       setCompliance(result);
     } finally {
       setLoading(false);
