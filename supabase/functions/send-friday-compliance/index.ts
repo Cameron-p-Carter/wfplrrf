@@ -47,7 +47,7 @@ Deno.serve(async (req) => {
     const weekLabel = `${weekStart.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })} – ${weekEnd.toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })}`;
 
     // Fetch entries, holidays, approvals, and employee settings in parallel
-    const [entriesRes, holidaysRes, approvalsRes, settingsRes, peopleRes] = await Promise.all([
+    const [entriesRes, holidaysRes, approvalsRes, settingsRes, peopleRes, mappingsRes] = await Promise.all([
       supabase
         .from('timesheet_entries')
         .select('employee_name, entry_date, units, cost_centre')
@@ -60,8 +60,9 @@ Deno.serve(async (req) => {
         .eq('week_start', weekStartStr),
       supabase
         .from('timesheet_employee_settings')
-        .select('employee_name, is_part_time'),
-      supabase.from('people').select('display_name, email'),
+        .select('employee_name, is_part_time, is_off_work'),
+      supabase.from('people').select('display_name, email').eq('terminated', false),
+      supabase.from('timesheet_name_mappings').select('timesheet_name, display_name'),
     ]);
 
     if (entriesRes.error) throw new Error(entriesRes.error.message);
@@ -76,6 +77,10 @@ Deno.serve(async (req) => {
     const offWorkSet = new Set(settings.filter((s) => s.is_off_work).map((s) => s.employee_name));
     const allPeople = (peopleRes.data ?? []) as { display_name: string; email: string | null }[];
     const allPeopleNames = allPeople.map((p) => p.display_name).filter(Boolean);
+    const nameMappings = new Map(
+      ((mappingsRes.data ?? []) as { timesheet_name: string; display_name: string }[])
+        .map((m) => [m.timesheet_name, m.display_name])
+    );
 
     // Weekday date strings Mon–Fri
     const weekdays: string[] = [];
@@ -86,12 +91,13 @@ Deno.serve(async (req) => {
     const publicHolidaysThisWeek = weekdays.filter((d) => holidaySet.has(d)).length;
     const expectedHours = Math.max(0, 40 - publicHolidaysThisWeek * 8);
 
-    // Group entries by employee → day
+    // Group entries by employee → day, applying name mappings
     type DayEntry = { hours: number; costCentres: string[] };
     const byEmployee = new Map<string, Record<string, DayEntry>>();
     for (const e of entries) {
-      if (!byEmployee.has(e.employee_name)) byEmployee.set(e.employee_name, {});
-      const dm = byEmployee.get(e.employee_name)!;
+      const name = nameMappings.get(e.employee_name) ?? e.employee_name;
+      if (!byEmployee.has(name)) byEmployee.set(name, {});
+      const dm = byEmployee.get(name)!;
       if (!dm[e.entry_date]) dm[e.entry_date] = { hours: 0, costCentres: [] };
       dm[e.entry_date].hours += Number(e.units);
       dm[e.entry_date].costCentres.push(e.cost_centre);

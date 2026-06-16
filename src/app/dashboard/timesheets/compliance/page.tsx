@@ -49,7 +49,16 @@ const ACTION_LABELS: Record<string, { label: string; color: string }> = {
 };
 
 function ViolationBadges({ emp }: { emp: EmployeeCompliance }) {
-  const { violations: v, publicHolidaysThisWeek, expectedHours, isPartTime } = emp;
+  const { violations: v, publicHolidaysThisWeek, expectedHours, isPartTime, isOffWork } = emp;
+
+  if (isOffWork) {
+    return (
+      <Badge variant="outline" className="bg-slate-100 text-slate-500 border-slate-200 font-normal text-xs">
+        Off work
+      </Badge>
+    );
+  }
+
   const badges: React.ReactNode[] = [];
 
   if (v.underHours) {

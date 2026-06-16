@@ -103,7 +103,7 @@ export function computeWeekCompliance(
   const results: EmployeeCompliance[] = [];
 
   for (const [employeeName, empEntries] of byEmployee) {
-    if (offWorkEmployees.has(employeeName)) continue;
+    const isOffWork = offWorkEmployees.has(employeeName);
 
     const dayEntries: Record<string, DayEntry> = {};
     let totalHours = 0;
@@ -144,9 +144,10 @@ export function computeWeekCompliance(
     const isPartTime = partTimeEmployees.has(employeeName);
     const publicHolidaysThisWeek = weekdays.filter((d) => holidaySet.has(format(d, 'yyyy-MM-dd'))).length;
     const expectedHours = Math.max(0, 40 - publicHolidaysThisWeek * 8);
-    const underHours = !isPartTime && weekdayHours < expectedHours;
-    const overHours = !isPartTime && weekdayHours > 40;
-    if (isPartTime) gapDays.length = 0;
+    const underHours = !isOffWork && !isPartTime && weekdayHours < expectedHours;
+    const overHours = !isOffWork && !isPartTime && weekdayHours > 40;
+    if (isPartTime || isOffWork) gapDays.length = 0;
+    if (isOffWork) weekendWork.length = 0;
 
     const violations: Violations = { underHours, overHours, weekendWork, gapDays };
     const violationCount =
@@ -172,9 +173,9 @@ export function computeWeekCompliance(
       dayEntries,
       violations,
       violationCount,
-      isCompliant: violationCount === 0 || !!approval,
+      isCompliant: isOffWork || violationCount === 0 || !!approval,
       isPartTime,
-      isOffWork: false,
+      isOffWork,
       hasApproval: !!approval,
       approval,
       actions: empActions,
@@ -185,17 +186,17 @@ export function computeWeekCompliance(
   // Add employees from the known list who submitted no entries at all
   for (const employeeName of allEmployeeNames) {
     if (byEmployee.has(employeeName)) continue;
-    if (offWorkEmployees.has(employeeName)) continue;
 
+    const isOffWork = offWorkEmployees.has(employeeName);
     const isPartTime = partTimeEmployees.has(employeeName);
     const publicHolidaysThisWeek = weekdays.filter((d) => holidaySet.has(format(d, 'yyyy-MM-dd'))).length;
     const expectedHours = Math.max(0, 40 - publicHolidaysThisWeek * 8);
 
-    const gapDays = isPartTime
+    const gapDays = isOffWork || isPartTime
       ? []
       : weekdays.map((d) => format(d, 'yyyy-MM-dd')).filter((ds) => !holidaySet.has(ds));
 
-    const underHours = !isPartTime;
+    const underHours = !isOffWork && !isPartTime;
     const violations: Violations = { underHours, overHours: false, weekendWork: [], gapDays };
     const violationCount = (underHours ? 1 : 0) + gapDays.length;
 
@@ -216,9 +217,9 @@ export function computeWeekCompliance(
       dayEntries: {},
       violations,
       violationCount,
-      isCompliant: violationCount === 0 || !!approval,
+      isCompliant: isOffWork || violationCount === 0 || !!approval,
       isPartTime,
-      isOffWork: false,
+      isOffWork,
       hasApproval: !!approval,
       approval,
       actions: empActions,
